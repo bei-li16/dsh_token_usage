@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">
+  <!-- Usage ledger: an open ledger whose left page carries ascending token
+       bars and whose right page carries the cache trend line with its end
+       dot. Transparent background: Plugin Manager draws its own tile frame.
+       Self-contained: no scripts, no style, no text, no external refs. -->
+  <defs>
+    <linearGradient id="ledgerTeal" x1="13" y1="15" x2="13" y2="24" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#63BFA9" />
+      <stop offset="1" stop-color="#2F7D6C" />
+    </linearGradient>
+  </defs>
+  <path d="M18 11C15 8.5 11 8 7.5 9L7.5 26C11 25 15 25.5 18 28C21 25.5 25 25 28.5 26L28.5 9C25 8 21 8.5 18 11Z"
+        fill="none" stroke="#5B6BB4" stroke-width="1.7" stroke-linejoin="round" />
+  <rect x="10.1" y="20" width="2" height="3.2" rx="1" fill="url(#ledgerTeal)" />
+  <rect x="12.9" y="18.2" width="2" height="5" rx="1" fill="url(#ledgerTeal)" />
+  <rect x="15.7" y="16.4" width="2" height="6.8" rx="1" fill="url(#ledgerTeal)" />
+  <path d="M19.9 21.5L22.2 18.8L24.5 19.9L26.9 15.4" fill="none" stroke="#D08A3E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+  <circle cx="26.9" cy="15.4" r="1.7" fill="#D08A3E" />
+</svg>

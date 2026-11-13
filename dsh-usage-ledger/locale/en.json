@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "Usage ledger",
+    "description": "Request-level token usage ledger: every provider call is recorded as a fact with per-request tokens, first-token wait and decode speed (SQLite detail kept for 30 days), while permanent per-day rollups power lifetime statistics. Open the Usage ledger row in the sidebar for the global panel: lifetime cards (totals, peak day, streak, average first-token wait, cache hit rate, error rate), a 52-week activity heatmap, daily per-model curves, model and tool distribution. Each session page gains a Usage tab with that session's own breakdown. Data is derived from session logs only; recording is observational and never interferes with turns. Tunables (retentionDays, heatmapWeeks, backfillConcurrency, factsDbPath) live on the usage-ledger row's config in cordis.patch.yml. Turning the plugin off stops recording; stored data stays until you delete it. Do not run it together with dsh-token-total — uninstall that plugin first.",
+    "detail": "docs/DETAIL.md"
+  }
+}

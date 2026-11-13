@@ -1,0 +1,10 @@
+# dsh-usage-ledger bundle patch
+#
+# The `dsh.bundle.patch` layer of this package: installing the bundle mounts
+# the plugin row below. The `!!js` disabled expression is the double-mount
+# guard (same pattern as dsh-token-total): this row backs off when another
+# enabled entry already mounts `dsh-usage-ledger`.
+- insert:
+    - id: usage-ledger
+      name: 'dsh-usage-ledger'
+      disabled: !!js "[...ctx.loader.entries()].some((e) => e.options.name === 'dsh-usage-ledger' && e.options.id !== 'usage-ledger' && !e.disabled)"
