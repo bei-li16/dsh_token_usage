@@ -33,6 +33,7 @@ window.__ModuleLoader__.load({
       cacheReadTok: '缓存读', cacheWriteTok: '缓存写', turns: '轮次', toolCalls: '工具调用',
       dailyTitle: '每日用量（按模型）', rToday: '今天', r7: '7 天', r30: '30 天', r90: '90 天',
       heatTitle: '近一年活跃度', less: '少', more: '多',
+      hmDay: '每日', hmWeek: '每周', hmCum: '累计',
       donutTitle: '模型占比', other: '其他',
       toolsTitle: '工具分布', tName: '工具', tCalls: '次数', tFail: '失败率', tAvg: '平均耗时',
       sessTitle: '会话', sName: '名称', sKind: '类型', sDays: '活跃区间', sReq: '请求', sTok: 'tokens',
@@ -58,6 +59,7 @@ window.__ModuleLoader__.load({
       cacheReadTok: 'Cache read', cacheWriteTok: 'Cache write', turns: 'Turns', toolCalls: 'Tool calls',
       dailyTitle: 'Daily usage by model', rToday: 'Today', r7: '7d', r30: '30d', r90: '90d',
       heatTitle: 'Past year activity', less: 'Less', more: 'More',
+      hmDay: 'Daily', hmWeek: 'Weekly', hmCum: 'Cumulative',
       donutTitle: 'Model share', other: 'Other',
       toolsTitle: 'Tool usage', tName: 'Tool', tCalls: 'Calls', tFail: 'Failure rate', tAvg: 'Avg duration',
       sessTitle: 'Sessions', sName: 'Name', sKind: 'Kind', sDays: 'Active span', sReq: 'Requests', sTok: 'tokens',
@@ -177,6 +179,12 @@ window.__ModuleLoader__.load({
 .ul-cardLabel{font-size:12px;color:var(--dsw-alias-label-tertiary);margin-bottom:4px}
 .ul-cardValue{font-size:18px;font-weight:600;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ul-cardSub{font-size:11px;color:var(--dsw-alias-label-tertiary);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ul-band{display:flex;flex-wrap:wrap;box-sizing:border-box;border:1px solid var(--dsw-alias-border-l2);border-radius:10px;background:var(--dsw-alias-bg-layer-1)}
+.ul-bandItem{flex:1 1 118px;min-width:0;box-sizing:border-box;padding:12px 14px}
+.ul-bandItem+.ul-bandItem{border-left:1px solid var(--dsw-alias-border-l2)}
+.ul-bandValue{font-size:19px;font-weight:600;color:var(--dsw-alias-label-primary);font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ul-bandLabel{font-size:12px;color:var(--dsw-alias-label-tertiary);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ul-bandSub{font-size:11px;color:var(--dsw-alias-label-tertiary);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ul-note{color:var(--dsw-alias-label-tertiary);font-size:12px;padding:8px 0}
 .ul-error{color:var(--dsw-alias-label-secondary);font-size:12px;display:flex;gap:8px;align-items:center}
 .ul-error button{border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);border-radius:6px;padding:2px 10px;cursor:pointer;font:inherit;font-size:12px}
@@ -203,13 +211,13 @@ window.__ModuleLoader__.load({
 .ul-heatWrap{overflow-x:auto}
 .ul-heatInner{position:relative;width:100%}
 .ul-heat{width:100%;height:auto;display:block}
-.ul-heat0{fill:color-mix(in srgb,var(--dsw-tone-1) 8%,transparent)}
+.ul-heat0{fill:color-mix(in srgb,var(--dsw-tone-1) 14%,transparent)}
 .ul-heat1{fill:color-mix(in srgb,var(--dsw-tone-1) 25%,transparent)}
 .ul-heat2{fill:color-mix(in srgb,var(--dsw-tone-1) 45%,transparent)}
 .ul-heat3{fill:color-mix(in srgb,var(--dsw-tone-1) 65%,transparent)}
 .ul-heat4{fill:color-mix(in srgb,var(--dsw-tone-1) 85%,transparent)}
 .ul-heatLegend{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--dsw-alias-label-tertiary)}
-.ul-heatKey{width:11px;height:11px;border-radius:3px;display:inline-block}
+.ul-heatKey{width:12px;height:12px;border-radius:3px;display:inline-block}
 .ul-donutRow{display:flex;flex-wrap:wrap;align-items:center;gap:20px}
 .ul-donutWrap{position:relative;flex:0 0 auto}
 .ul-donutLegend{display:flex;flex-direction:column;gap:6px;min-width:0}
@@ -255,6 +263,16 @@ window.__ModuleLoader__.load({
         sub ? h('div', { className: 'ul-cardSub' }, sub) : null)
     }
 
+    // One strip item of the overview band: big value on top, small label
+    // below, optional sub line last. Vertical 1px dividers come from CSS
+    // (.ul-bandItem + .ul-bandItem), so the first item has none.
+    function BandItem({ label, value, sub }) {
+      return h('div', { className: 'ul-bandItem' },
+        h('div', { className: 'ul-bandValue' }, value),
+        h('div', { className: 'ul-bandLabel' }, label),
+        sub ? h('div', { className: 'ul-bandSub' }, sub) : null)
+    }
+
     // ── shared chart tooltip (styled card; replaces native <title>) ───────
     // Absolutely positioned inside a position:relative chart wrapper;
     // pointerEvents none so it never steals hover. Caller supplies
@@ -277,14 +295,14 @@ window.__ModuleLoader__.load({
       if (!s) return h('div', { className: 'ul-note' }, t('empty'))
       return h('section', { className: 'ul-sec' },
         h('div', { className: 'ul-secTitle' }, t('sumTitle')),
-        h('div', { className: 'ul-cards' },
-          h(Card, { label: t('totalTokens'), value: fmtTok(s.tokens), sub: `${t('inputTok')} ${fmtTok(s.inputTokens)} · ${t('outputTok')} ${fmtTok(s.outputTokens)}` }),
-          h(Card, { label: t('requests'), value: fmtInt(s.requests), sub: `${t('failures')} ${fmtInt(s.failures)} · ${t('errorRate')} ${fmtPct(s.errorRate)}` }),
-          h(Card, { label: t('cacheHit'), value: fmtPct(s.cacheHitRate), sub: `${t('cacheReadTok')} ${fmtTok(s.cacheReadTokens)} · ${t('cacheWriteTok')} ${fmtTok(s.cacheWriteTokens)}` }),
-          h(Card, { label: t('avgTtft'), value: fmtMs(s.avgFirstTokenMs) }),
-          h(Card, { label: t('decodeSpeed'), value: fmtSpeed(s.tokensPerSecond) }),
-          h(Card, { label: t('streak'), value: `${fmtInt(s.streakDays)} ${t('streakUnit')}`, sub: `${t('activeDays')} ${fmtInt(s.activeDays)}` }),
-          s.peakDay ? h(Card, { label: t('peakDay'), value: fmtTok(s.peakDay.tokens), sub: s.peakDay.day }) : null))
+        h('div', { className: 'ul-band' },
+          h(BandItem, { label: t('totalTokens'), value: fmtTok(s.tokens), sub: `${t('inputTok')} ${fmtTok(s.inputTokens)} · ${t('outputTok')} ${fmtTok(s.outputTokens)}` }),
+          h(BandItem, { label: t('requests'), value: fmtInt(s.requests), sub: `${t('failures')} ${fmtInt(s.failures)} · ${t('errorRate')} ${fmtPct(s.errorRate)}` }),
+          h(BandItem, { label: t('cacheHit'), value: fmtPct(s.cacheHitRate), sub: `${t('cacheReadTok')} ${fmtTok(s.cacheReadTokens)} · ${t('cacheWriteTok')} ${fmtTok(s.cacheWriteTokens)}` }),
+          h(BandItem, { label: t('avgTtft'), value: fmtMs(s.avgFirstTokenMs) }),
+          h(BandItem, { label: t('decodeSpeed'), value: fmtSpeed(s.tokensPerSecond) }),
+          h(BandItem, { label: t('streak'), value: `${fmtInt(s.streakDays)} ${t('streakUnit')}`, sub: `${t('activeDays')} ${fmtInt(s.activeDays)}` }),
+          s.peakDay ? h(BandItem, { label: t('peakDay'), value: fmtTok(s.peakDay.tokens), sub: s.peakDay.day }) : null))
     }
 
     // ── chart series palette (artwork exception: literals allowed) ────────
@@ -353,10 +371,40 @@ window.__ModuleLoader__.load({
       { id: '90', label: 'r90', days: 90, granularity: 'day' },
     ]
 
-    function LineChart({ keys, granularity, degraded, series }) {
+    function LineChart({ keys, granularity, degraded, series, animKey }) {
       const W = 720; const H = 240; const padL = 46; const padR = 8; const padT = 12; const padB = 22
       const n = keys.length
       const [hover, setHover] = React.useState(null) // hovered bucket index
+      // Entrance "draw" animation. Trigger key = the fetched data reference
+      // (animKey), so hovers and legend toggles (same data, new series
+      // array identity) never replay it; a range switch / refetch arrives
+      // as a new reference and replays. Each visible path measures itself
+      // with getTotalLength() — no fabricated lengths; degenerate paths
+      // (unmeasurable / zero length) are skipped. Reduced-motion → final
+      // state immediately. transitionend listeners are removed on cleanup.
+      const pathsRef = React.useRef({})
+      React.useLayoutEffect(() => { // layout effect: no final-state flash before the sweep starts
+        if (typeof window === 'undefined' || !window.matchMedia) return undefined
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined
+        const cleanups = []
+        for (const key of Object.keys(pathsRef.current)) {
+          const el = pathsRef.current[key]
+          if (!el) continue
+          let len = 0
+          try { len = el.getTotalLength() } catch { continue }
+          if (!Number.isFinite(len) || len <= 0) continue
+          el.style.transition = 'none'
+          el.style.strokeDasharray = `${len} ${len}`
+          el.style.strokeDashoffset = `${len}`
+          el.getBoundingClientRect() // flush so the transition starts at len
+          el.style.transition = 'stroke-dashoffset 720ms ease-out'
+          el.style.strokeDashoffset = '0'
+          const done = () => { el.style.transition = ''; el.style.strokeDasharray = ''; el.style.strokeDashoffset = '' }
+          el.addEventListener('transitionend', done, { once: true })
+          cleanups.push(() => el.removeEventListener('transitionend', done))
+        }
+        return () => { for (const c of cleanups) c() }
+      }, [animKey])
       let max = 0
       for (const s of series) for (const v of s.values) if (v > max) max = v
       if (max <= 0) max = 1
@@ -366,6 +414,16 @@ window.__ModuleLoader__.load({
       const isHour = granularity === 'hour' && !degraded
       const labelOf = (key) => (isHour ? `${key.slice(-2)}:00` : key.slice(5) || key)
       const tickEvery = Math.max(1, Math.ceil(n / 8))
+      // Tick de-collision: stride ticks as before, but the trailing label
+      // replaces the previous stride tick when they would sit closer than
+      // ~44px (was: unconditional append → overlapping "11-1211-1").
+      const tickIdx = []
+      for (let i = 0; i < n; i += tickEvery) tickIdx.push(i)
+      const lastTick = tickIdx[tickIdx.length - 1]
+      if (n > 0 && lastTick !== n - 1) {
+        if (x(n - 1) - x(lastTick) < 44) tickIdx[tickIdx.length - 1] = n - 1
+        else tickIdx.push(n - 1)
+      }
       const grid = [0, 0.5, 1]
       // offsetX → nearest bucket index (svg scales to 100% width, so map
       // through the viewBox: client px → viewBox units).
@@ -398,11 +456,14 @@ window.__ModuleLoader__.load({
           series.map((s) => {
             const pts = s.values.map((v, i) => ({ x: x(i), y: y(v) }))
             return h('g', { key: s.key },
-              h('path', { d: fcCurvePath(pts), fill: 'none', stroke: s.color, strokeWidth: 2, vectorEffect: 'non-scaling-stroke', strokeLinejoin: 'round', strokeLinecap: 'round' }))
+              h('path', {
+                d: fcCurvePath(pts), fill: 'none', stroke: s.color, strokeWidth: 2, vectorEffect: 'non-scaling-stroke', strokeLinejoin: 'round', strokeLinecap: 'round',
+                ref: (el) => { if (el) pathsRef.current[s.key] = el; else delete pathsRef.current[s.key] },
+              }))
           }),
-          keys.map((key, i) => (i % tickEvery === 0 || i === n - 1
-            ? h('text', { key, x: x(i), y: H - 6, textAnchor: 'middle', fontSize: 10, fill: 'var(--dsw-alias-label-tertiary)' }, labelOf(key))
-            : null))),
+          tickIdx.map((i) => h('text', {
+            key: keys[i], x: x(i), y: H - 6, textAnchor: 'middle', fontSize: 10, fill: 'var(--dsw-alias-label-tertiary)',
+          }, labelOf(keys[i])))),
         hi !== null
           ? h(ChartTip, {
             style: {
@@ -461,7 +522,7 @@ window.__ModuleLoader__.load({
           : !data || totals.length === 0
             ? h('div', { className: 'ul-note' }, t('empty'))
             : h(React.Fragment, null,
-              h(LineChart, { keys, granularity: range.granularity, degraded: !!data.degraded, series }),
+              h(LineChart, { keys, granularity: range.granularity, degraded: !!data.degraded, series, animKey: data }),
               h('div', { className: 'ul-legend' },
                 legendItems.map((it) => h('button', {
                   key: it.key, type: 'button',
@@ -473,50 +534,117 @@ window.__ModuleLoader__.load({
     }
 
     // ── 52-week heatmap (/heatmap) ─────────────────────────────────────────
+    // GitHub-style grid: rows = weekday (Monday on top), columns = weeks.
+    // The first day snaps to its own week row, future cells are not drawn,
+    // and month labels sit under the grid where a column's first day enters
+    // a new month. Mode segment: day tokens / week sums / running total.
+    const HEAT_MODES = [
+      { id: 'day', label: 'hmDay' },
+      { id: 'week', label: 'hmWeek' },
+      { id: 'cum', label: 'hmCum' },
+    ]
     function HeatmapSection({ tick }) {
       const state = useApi('heatmap', { weeks: 52 }, [tick])
-      const [hover, setHover] = React.useState(null) // hovered day index
+      const [hover, setHover] = React.useState(null) // hovered cell index
+      const [mode, setMode] = React.useState('day')
       if (state.loading || state.error) return h(LoadState, { state })
       const data = state.data
       if (!data || !data.days || data.days.length === 0) return h('div', { className: 'ul-note' }, t('empty'))
-      const cell = 11; const gap = 3; const step = cell + gap
-      const cols = Math.ceil(data.days.length / 7)
+      const cell = 12; const gap = 3; const step = cell + gap
+      const gridH = 7 * step; const labelH = 14
+      const H = gridH + labelH
+      const today = dayKeyOf(new Date())
+      const dayMs = (k) => new Date(`${k}T00:00:00`).getTime()
+      // Monday-top rows: Mon=0 … Sun=6.
+      const rowOf = (ms) => (new Date(ms).getDay() + 6) % 7
+      const firstMs = dayMs(data.days[0].day)
+      if (Number.isNaN(firstMs)) return h('div', { className: 'ul-note' }, t('empty'))
+      const weekStartMs = firstMs - rowOf(firstMs) * 86400000 // Monday of column 0
+      const cells = []
+      for (const d of data.days) {
+        if (d.day > today) continue // future cells are not drawn
+        const ms = dayMs(d.day)
+        if (Number.isNaN(ms)) continue
+        // day-granularity round (DST-safe) THEN floor to whole weeks:
+        // a plain round on weeks would push Wed–Sun one column right.
+        cells.push({ d, row: rowOf(ms), col: Math.floor(Math.round((ms - weekStartMs) / 86400000) / 7) })
+      }
+      if (cells.length === 0) return h('div', { className: 'ul-note' }, t('empty'))
+      const cols = cells[cells.length - 1].col + 1
       const W = cols * step
-      const H = 7 * step
-      const max = data.maxTokens > 0 ? data.maxTokens : 1
-      const level = (tokens) => {
-        if (tokens <= 0) return 0
-        const r = tokens / max
+      // display value per mode: raw day tokens / week sum / running total
+      const weekSum = []
+      let run = 0
+      for (const c of cells) {
+        weekSum[c.col] = (weekSum[c.col] || 0) + c.d.tokens
+        run += c.d.tokens
+        c.cum = run
+      }
+      const valueOf = (c) => (mode === 'week' ? weekSum[c.col] : mode === 'cum' ? c.cum : c.d.tokens)
+      let max = 0
+      for (const c of cells) { const v = valueOf(c); if (v > max) max = v }
+      if (max <= 0) max = 1
+      const level = (v) => {
+        if (v <= 0) return 0
+        const r = v / max
         return r < 0.25 ? 1 : r < 0.5 ? 2 : r < 0.75 ? 3 : 4
       }
-      const hd = hover !== null ? data.days[hover] : null
+      // Month labels: at each column whose first rendered day enters a new
+      // month; zh → "11月", en → "Nov" (ambient locale, fmtDayLong precedent).
+      // Labels closer than 30px to the previous one or past the right edge
+      // are dropped so the row never overlaps itself.
+      const monthLabels = []
+      let prevMonth = -1; let prevCol = -1; let lastLabelX = -Infinity
+      for (const c of cells) {
+        if (c.col === prevCol) continue // cells are day-ordered → first of column
+        prevCol = c.col
+        const dt = new Date(dayMs(c.d.day))
+        const m = dt.getMonth()
+        if (m === prevMonth) continue
+        prevMonth = m
+        const x = c.col * step
+        if ((c.col !== 0 && x - lastLabelX < 30) || x > W - 24) continue
+        lastLabelX = x
+        monthLabels.push({ x, text: dt.toLocaleDateString(undefined, { month: 'short' }) })
+      }
+      const hd = hover !== null && hover < cells.length ? cells[hover] : null
       let tipStyle = null
       if (hd) {
-        const col = Math.floor(hover / 7); const row = hover % 7
-        const fx = ((col * step + cell / 2) / W) * 100
-        const fy = ((row * step) / H) * 100
+        const fx = ((hd.col * step + cell / 2) / W) * 100
+        const fy = ((hd.row * step) / H) * 100
         // flip: right edge → card grows left; top rows → card drops below cell
         const tx = fx > 82 ? 'translateX(calc(-100% + 10px))' : fx < 10 ? 'translateX(-10px)' : 'translateX(-50%)'
-        const ty = row >= 2 ? 'translateY(calc(-100% - 8px))' : `translateY(${cell + 8}px)`
+        const ty = hd.row >= 2 ? 'translateY(calc(-100% - 8px))' : `translateY(${cell + 8}px)`
         tipStyle = { left: `${fx}%`, top: `${fy}%`, transform: `${tx} ${ty}` }
       }
       return h('section', { className: 'ul-sec' },
-        h('div', { className: 'ul-secTitle' }, t('heatTitle')),
+        h('div', { className: 'ul-toolbar' },
+          h('div', { className: 'ul-secTitle' }, t('heatTitle')),
+          h('div', { className: 'ul-seg' },
+            HEAT_MODES.map((m) => h('button', {
+              key: m.id, type: 'button',
+              className: m.id === mode ? 'ul-segBtn ul-segActive' : 'ul-segBtn',
+              onClick: () => setMode(m.id),
+            }, t(m.label))))),
         h('div', { className: 'ul-heatWrap' },
           h('div', { className: 'ul-heatInner', style: { maxWidth: `${W}px` } },
             h('svg', { className: 'ul-heat', viewBox: `0 0 ${W} ${H}`, role: 'img' },
-              data.days.map((d, i) => h('rect', {
-                key: d.day,
-                x: Math.floor(i / 7) * step, y: (i % 7) * step,
+              cells.map((c, i) => h('rect', {
+                key: c.d.day,
+                x: c.col * step, y: c.row * step,
                 width: cell, height: cell, rx: 3,
-                class: `ul-heat${level(d.tokens)}`,
+                class: `ul-heat${level(valueOf(c))}`,
                 onMouseEnter: () => setHover(i),
                 onMouseLeave: () => setHover(null),
-              }))),
+              })),
+              monthLabels.map((ml) => h('text', {
+                key: `m${ml.x}`, x: ml.x, y: gridH + 11,
+                fontSize: 10, fill: 'var(--dsw-alias-label-tertiary)',
+              }, ml.text))),
             hd
               ? h(ChartTip, { style: tipStyle },
-                h('div', { className: 'ul-tipTitle' }, fmtDayLong(hd.day)),
-                h('div', { className: 'ul-tipRow' }, `${fmtTok(hd.tokens)} tokens · ${fmtInt(hd.requests)} ${t('reqWord')}`))
+                h('div', { className: 'ul-tipTitle' }, fmtDayLong(hd.d.day)),
+                h('div', { className: 'ul-tipRow' }, `${fmtTok(hd.d.tokens)} tokens · ${fmtInt(hd.d.requests)} ${t('reqWord')}`))
               : null)),
         h('div', { className: 'ul-heatLegend' },
           h('span', null, t('less')),
@@ -525,12 +653,48 @@ window.__ModuleLoader__.load({
     }
 
     // ── model donut (/daily?group=model groupTotals, 30d window) ──────────
+    const DONUT_R = 48
+    const DONUT_C = 2 * Math.PI * DONUT_R
     function DonutSection({ tick }) {
       const to = dayKeyOf(new Date())
       const fromDate = new Date(); fromDate.setDate(fromDate.getDate() - 29)
       const state = useApi('daily', { from: dayKeyOf(fromDate), to, group: 'model', granularity: 'day' }, [tick])
       const [hover, setHover] = React.useState(null) // { i, x, y } in wrap px
       const wrapRef = React.useRef(null)
+      const arcsRef = React.useRef({})
+      // Entrance sweep. Trigger key = the fetched data reference (state.data):
+      // hovers re-render with the same reference and never replay; a refetch
+      // arrives as a new reference and replays. Each arc's dasharray grows
+      // from 0 to its rendered final value (read off the element's own
+      // attribute — no fabricated lengths) in one shared 720ms ease-out
+      // window with a 60ms stagger. Degenerate slices (final dash ≤ 0) are
+      // skipped. Reduced-motion → final state immediately; transitionend
+      // listeners are removed on cleanup.
+      React.useLayoutEffect(() => { // layout effect: no final-state flash before the sweep starts
+        if (!state.data) return undefined
+        if (typeof window === 'undefined' || !window.matchMedia) return undefined
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined
+        const cleanups = []
+        let stagger = 0
+        for (const key of Object.keys(arcsRef.current)) {
+          const el = arcsRef.current[key]
+          if (!el) continue
+          const target = el.getAttribute('stroke-dasharray') // rendered final "dash gap"
+          if (!target) continue
+          const dash = parseFloat(target)
+          if (!Number.isFinite(dash) || dash <= 0) continue
+          el.style.transition = 'none'
+          el.style.strokeDasharray = `0 ${DONUT_C}`
+          el.getBoundingClientRect() // flush so the transition starts at 0
+          el.style.transition = `stroke-dasharray 720ms ease-out ${stagger * 60}ms`
+          stagger += 1
+          el.style.strokeDasharray = target
+          const done = () => { el.style.transition = ''; el.style.strokeDasharray = '' }
+          el.addEventListener('transitionend', done, { once: true })
+          cleanups.push(() => el.removeEventListener('transitionend', done))
+        }
+        return () => { for (const c of cleanups) c() }
+      }, [state.data])
       if (state.loading || state.error) return h(LoadState, { state })
       const data = state.data
       const totals = data ? data.groupTotals : []
@@ -541,7 +705,7 @@ window.__ModuleLoader__.load({
       const slices = top.map((g, i) => ({ key: g.key, tokens: g.tokens, color: PALETTE[i % PALETTE.length] }))
       if (restTokens > 0) slices.push({ key: t('other'), tokens: restTokens, color: PALETTE[6] })
       const sum = slices.reduce((a, s) => a + s.tokens, 0) || 1
-      const R = 48; const C = 2 * Math.PI * R
+      const R = DONUT_R; const C = DONUT_C
       let acc = 0
       const posOf = (e, i) => {
         const el = wrapRef.current
@@ -568,6 +732,7 @@ window.__ModuleLoader__.load({
                   stroke: s.color, strokeWidth: hs && hover.i === si ? 21 : 18,
                   strokeDasharray: `${Math.max(0, frac * C - 1.5)} ${C - Math.max(0, frac * C - 1.5)}`,
                   strokeDashoffset: -off * C + C / 4,
+                  ref: (el) => { if (el) arcsRef.current[s.key] = el; else delete arcsRef.current[s.key] },
                   onMouseEnter: (e) => setHover(posOf(e, si)),
                   onMouseMove: (e) => setHover(posOf(e, si)),
                 })
