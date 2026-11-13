@@ -42,6 +42,9 @@ window.__ModuleLoader__.load({
       cTime: '时间', cModel: '模型', cStatus: '状态', cTok: 'tokens', cTtft: '首 token', cSpeed: '速度',
       stRunning: '进行中', stCompleted: '完成', stFailed: '失败', stInterrupted: '中断',
       tokPerS: 'tok/s',
+      reqWord: '次请求', recordFail: '条写入失败',
+      sessTotal: '共 {n} 个会话', recTrunc: '显示前 50 / 共 {n} 条',
+      donutWindow: '（近 30 天）',
     }
     const en = {
       nav: 'Usage ledger', tab: 'Usage', back: 'Back', loading: 'Loading…',
@@ -64,6 +67,9 @@ window.__ModuleLoader__.load({
       cTime: 'Time', cModel: 'Model', cStatus: 'Status', cTok: 'tokens', cTtft: 'TTFT', cSpeed: 'Speed',
       stRunning: 'Running', stCompleted: 'Completed', stFailed: 'Failed', stInterrupted: 'Interrupted',
       tokPerS: 'tok/s',
+      reqWord: 'requests', recordFail: 'write failures',
+      sessTotal: '{n} sessions', recTrunc: 'showing first 50 of {n}',
+      donutWindow: ' (last 30 days)',
     }
 
     // t is bound in apply() before any component renders.
@@ -100,25 +106,31 @@ window.__ModuleLoader__.load({
       return { ...state, retry }
     }
 
-    /** Status with 1s polling while backfill.running; timers cleared on stop/unmount. */
+    /** Status with 1s polling while backfill.running; timers cleared on stop/unmount.
+     *  refreshTick increments on the running true→false transition so panels refetch. */
     function useStatus() {
       const [status, setStatus] = React.useState(null)
+      const [refreshTick, setRefreshTick] = React.useState(0)
       React.useEffect(() => {
         let stopped = false
         let timer = null
         let ac = null
+        let wasRunning = false
         const tick = () => {
           ac = new AbortController()
           post('status', {}, ac.signal).then((s) => {
             if (stopped) return
             setStatus(s)
-            if (s && s.backfill && s.backfill.running) timer = setTimeout(tick, 1000)
+            const running = !!(s && s.backfill && s.backfill.running)
+            if (wasRunning && !running) setRefreshTick((v) => v + 1) // backfill just finished → refresh sections
+            wasRunning = running
+            if (running) timer = setTimeout(tick, 1000)
           }, () => { /* status bar stays hidden on error */ })
         }
         tick()
         return () => { stopped = true; if (timer) clearTimeout(timer); if (ac) ac.abort() }
       }, [])
-      return status
+      return { status, refreshTick }
     }
 
     // ── formatting helpers ─────────────────────────────────────────────────
@@ -141,6 +153,12 @@ window.__ModuleLoader__.load({
       if (typeof ms !== 'number' || !Number.isFinite(ms)) return t('na')
       const d = new Date(ms)
       return `${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`
+    }
+    // heatmap tooltip header: zh → 2026年11月13日, en → November 13, 2026
+    const fmtDayLong = (dayKey) => {
+      const d = new Date(`${dayKey}T00:00:00`)
+      if (Number.isNaN(d.getTime())) return dayKey
+      return d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
     }
 
     // ── styles (chrome colors: --dsw-alias-* tokens only) ─────────────────
@@ -169,12 +187,21 @@ window.__ModuleLoader__.load({
 .ul-segBtn:hover{background:var(--dsw-alias-interactive-bg-hover)}
 .ul-segActive,.ul-segActive:hover{background:color-mix(in srgb,var(--dsw-tone-1) 14%,transparent);color:var(--dsw-tone-1);font-weight:600}
 .ul-chart{width:100%;height:auto;display:block}
+.ul-chartWrap{position:relative}
+.ul-tip{position:absolute;z-index:5;pointer-events:none;box-sizing:border-box;min-width:132px;max-width:260px;padding:8px 10px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2,var(--dsw-alias-bg-layer-1));box-shadow:0 4px 16px rgba(0,0,0,.24);font-size:12px;line-height:1.5;color:var(--dsw-alias-label-primary)}
+.ul-tipTitle{font-weight:600;color:var(--dsw-alias-label-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ul-tipRow{display:flex;align-items:center;gap:6px;color:var(--dsw-alias-label-secondary);white-space:nowrap;margin-top:2px}
+.ul-tipDot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+.ul-tipName{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px}
+.ul-tipStrong{font-weight:600;color:var(--dsw-alias-label-primary)}
+.ul-tipVal{margin-left:auto;padding-left:12px;font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-primary)}
 .ul-legend{display:flex;flex-wrap:wrap;gap:8px}
 .ul-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);border-radius:999px;padding:2px 10px;font:inherit;font-size:12px;color:var(--dsw-alias-label-secondary);cursor:pointer}
 .ul-chip:hover{background:var(--dsw-alias-interactive-bg-hover)}
 .ul-chipOff{opacity:.45}
 .ul-swatch{width:10px;height:10px;border-radius:3px;flex:0 0 auto}
 .ul-heatWrap{overflow-x:auto}
+.ul-heatInner{position:relative;width:100%}
 .ul-heat{width:100%;height:auto;display:block}
 .ul-heat0{fill:color-mix(in srgb,var(--dsw-tone-1) 8%,transparent)}
 .ul-heat1{fill:color-mix(in srgb,var(--dsw-tone-1) 25%,transparent)}
@@ -184,6 +211,7 @@ window.__ModuleLoader__.load({
 .ul-heatLegend{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--dsw-alias-label-tertiary)}
 .ul-heatKey{width:11px;height:11px;border-radius:3px;display:inline-block}
 .ul-donutRow{display:flex;flex-wrap:wrap;align-items:center;gap:20px}
+.ul-donutWrap{position:relative;flex:0 0 auto}
 .ul-donutLegend{display:flex;flex-direction:column;gap:6px;min-width:0}
 .ul-donutItem{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dsw-alias-label-secondary)}
 .ul-donutName{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:260px}
@@ -205,7 +233,7 @@ window.__ModuleLoader__.load({
 .ul-recHead,.ul-recRow{grid-template-columns:90px minmax(100px,1.4fr) 70px 70px 70px 70px}
 .ul-recHead{color:var(--dsw-alias-label-tertiary);border-bottom:1px solid var(--dsw-alias-border-l2);padding-bottom:6px}
 .ul-recRow{padding:4px 0;border-bottom:1px solid color-mix(in srgb,var(--dsw-alias-border-l2) 50%,transparent);color:var(--dsw-alias-label-secondary)}
-.ul-cellBad{color:var(--dsw-alias-danger-label,var(--dsw-alias-label-secondary))}
+.ul-cellBad{color:var(--dsw-alias-state-error-primary,var(--dsw-alias-label-secondary))}
 .ul-toolMini{display:flex;flex-wrap:wrap;gap:8px}
 `
 
@@ -227,9 +255,23 @@ window.__ModuleLoader__.load({
         sub ? h('div', { className: 'ul-cardSub' }, sub) : null)
     }
 
+    // ── shared chart tooltip (styled card; replaces native <title>) ───────
+    // Absolutely positioned inside a position:relative chart wrapper;
+    // pointerEvents none so it never steals hover. Caller supplies
+    // left/top/transform (flip logic lives at each chart).
+    function ChartTip({ style, children }) {
+      return h('div', { className: 'ul-tip', style }, children)
+    }
+
+    function TipRow({ color, children }) {
+      return h('div', { className: 'ul-tipRow' },
+        color ? h('span', { className: 'ul-tipDot', style: { background: color } }) : null,
+        children)
+    }
+
     // ── lifetime summary cards (/summary) ──────────────────────────────────
-    function SummaryCards() {
-      const state = useApi('summary', {}, [])
+    function SummaryCards({ tick }) {
+      const state = useApi('summary', {}, [tick])
       if (state.loading || state.error) return h(LoadState, { state })
       const s = state.data
       if (!s) return h('div', { className: 'ul-note' }, t('empty'))
@@ -311,52 +353,100 @@ window.__ModuleLoader__.load({
       { id: '90', label: 'r90', days: 90, granularity: 'day' },
     ]
 
-    function LineChart({ keys, granularity, series }) {
+    function LineChart({ keys, granularity, degraded, series }) {
       const W = 720; const H = 240; const padL = 46; const padR = 8; const padT = 12; const padB = 22
       const n = keys.length
+      const [hover, setHover] = React.useState(null) // hovered bucket index
       let max = 0
       for (const s of series) for (const v of s.values) if (v > max) max = v
       if (max <= 0) max = 1
       const x = (i) => (n === 1 ? padL + (W - padL - padR) / 2 : padL + (i * (W - padL - padR)) / (n - 1))
       const y = (v) => padT + (H - padT - padB) * (1 - v / max)
-      const labelOf = (key) => (granularity === 'hour' ? `${key.slice(-2)}:00` : key.slice(5) || key)
+      // KV-degraded responses return day buckets even for the hourly range.
+      const isHour = granularity === 'hour' && !degraded
+      const labelOf = (key) => (isHour ? `${key.slice(-2)}:00` : key.slice(5) || key)
       const tickEvery = Math.max(1, Math.ceil(n / 8))
       const grid = [0, 0.5, 1]
-      return h('svg', { className: 'ul-chart', viewBox: `0 0 ${W} ${H}`, role: 'img' },
-        grid.map((g) => h('g', { key: g },
-          h('line', { x1: padL, x2: W - padR, y1: y(max * g), y2: y(max * g), stroke: 'var(--dsw-alias-border-l2)', strokeWidth: 1, vectorEffect: 'non-scaling-stroke' }),
-          h('text', { x: padL - 6, y: y(max * g) + 3, textAnchor: 'end', fontSize: 10, fill: 'var(--dsw-alias-label-tertiary)' }, fmtTok(max * g)))),
-        series.map((s) => {
-          const pts = s.values.map((v, i) => ({ x: x(i), y: y(v) }))
-          return h('g', { key: s.key },
-            h('path', { d: fcCurvePath(pts), fill: 'none', stroke: s.color, strokeWidth: 2, vectorEffect: 'non-scaling-stroke', strokeLinejoin: 'round', strokeLinecap: 'round' }),
-            pts.map((p, i) => h('circle', { key: i, cx: p.x, cy: p.y, r: 5, fill: 'transparent' },
-              h('title', null, `${keys[i]} · ${s.key}: ${fmtTok(s.values[i])}`)),
-            ))
-        }),
-        keys.map((key, i) => (i % tickEvery === 0 || i === n - 1
-          ? h('text', { key, x: x(i), y: H - 6, textAnchor: 'middle', fontSize: 10, fill: 'var(--dsw-alias-label-tertiary)' }, labelOf(key))
-          : null)))
+      // offsetX → nearest bucket index (svg scales to 100% width, so map
+      // through the viewBox: client px → viewBox units).
+      const onMove = (e) => {
+        const rect = e.currentTarget.getBoundingClientRect()
+        if (!rect || rect.width <= 0) return
+        const px = ((e.clientX - rect.left) * W) / rect.width
+        let i = n === 1 ? 0 : Math.round(((px - padL) * (n - 1)) / (W - padL - padR))
+        if (i < 0) i = 0
+        if (i > n - 1) i = n - 1
+        setHover((prev) => (prev === i ? prev : i))
+      }
+      const hi = hover !== null && hover < n ? hover : null
+      const tipFrac = hi !== null ? x(hi) / W : 0
+      return h('div', { className: 'ul-chartWrap' },
+        h('svg', {
+          className: 'ul-chart', viewBox: `0 0 ${W} ${H}`, role: 'img',
+          onMouseMove: onMove, onMouseLeave: () => setHover(null),
+        },
+          grid.map((g) => h('g', { key: g },
+            h('line', { x1: padL, x2: W - padR, y1: y(max * g), y2: y(max * g), stroke: 'var(--dsw-alias-border-l2)', strokeWidth: 1, vectorEffect: 'non-scaling-stroke' }),
+            h('text', { x: padL - 6, y: y(max * g) + 3, textAnchor: 'end', fontSize: 10, fill: 'var(--dsw-alias-label-tertiary)' }, fmtTok(max * g)))),
+          hi !== null
+            ? h('line', {
+              x1: x(hi), x2: x(hi), y1: padT, y2: H - padB,
+              stroke: 'var(--dsw-alias-border-l2)', strokeWidth: 1,
+              strokeDasharray: '4 3', vectorEffect: 'non-scaling-stroke',
+            })
+            : null,
+          series.map((s) => {
+            const pts = s.values.map((v, i) => ({ x: x(i), y: y(v) }))
+            return h('g', { key: s.key },
+              h('path', { d: fcCurvePath(pts), fill: 'none', stroke: s.color, strokeWidth: 2, vectorEffect: 'non-scaling-stroke', strokeLinejoin: 'round', strokeLinecap: 'round' }))
+          }),
+          keys.map((key, i) => (i % tickEvery === 0 || i === n - 1
+            ? h('text', { key, x: x(i), y: H - 6, textAnchor: 'middle', fontSize: 10, fill: 'var(--dsw-alias-label-tertiary)' }, labelOf(key))
+            : null))),
+        hi !== null
+          ? h(ChartTip, {
+            style: {
+              left: `${tipFrac * 100}%`, top: 4,
+              transform: tipFrac > 0.6 ? 'translateX(calc(-100% - 10px))' : 'translateX(10px)',
+            },
+          },
+            h('div', { className: 'ul-tipTitle' },
+              `${labelOf(keys[hi])} - ${fmtTok(series.reduce((a, s) => a + (s.values[hi] || 0), 0))} tokens`),
+            series.map((s) => h(TipRow, { key: s.key, color: s.color },
+              h('span', { className: 'ul-tipName' }, s.key),
+              h('span', { className: 'ul-tipVal' }, `${fmtTok(s.values[hi])} tokens`))))
+          : null)
     }
 
-    function DailySection() {
+    function DailySection({ tick }) {
       const [rangeId, setRangeId] = React.useState('30')
       const [hidden, setHidden] = React.useState({})
       const range = RANGES.find((r) => r.id === rangeId) || RANGES[2]
       const to = dayKeyOf(new Date())
       const fromDate = new Date(); fromDate.setDate(fromDate.getDate() - (range.days - 1))
       const body = { from: dayKeyOf(fromDate), to, group: 'model', granularity: range.granularity }
-      const state = useApi('daily', body, [rangeId])
+      const state = useApi('daily', body, [rangeId, tick])
       const data = state.data
       const keys = data ? data.buckets.map((b) => b.key) : []
-      const totals = data ? data.groupTotals.slice(0, 6) : []
-      const series = totals
-        .map((g, gi) => ({
-          key: g.key,
-          color: PALETTE[gi % PALETTE.length],
-          values: data.buckets.map((b) => (b.groups && typeof b.groups[g.key] === 'number' ? b.groups[g.key] : 0)), // defensive zero-fill
-        }))
-        .filter((s) => !hidden[s.key])
+      const totals = data ? data.groupTotals : []
+      const top = totals.slice(0, 6)
+      const rest = totals.slice(6)
+      const restTokens = rest.reduce((a, g) => a + g.tokens, 0)
+      // top-6 series + a grey "other" rollup so line totals match the cards.
+      const legendItems = top.map((g, gi) => ({ key: g.key, color: PALETTE[gi % PALETTE.length] }))
+      if (restTokens > 0) legendItems.push({ key: t('other'), color: PALETTE[6] })
+      const valOf = (b, k) => (b.groups && typeof b.groups[k] === 'number' ? b.groups[k] : 0) // defensive zero-fill
+      const series = data
+        ? legendItems
+          .map((it, li) => ({
+            key: it.key,
+            color: it.color,
+            values: li === legendItems.length - 1 && restTokens > 0
+              ? data.buckets.map((b) => rest.reduce((a, g) => a + valOf(b, g.key), 0))
+              : data.buckets.map((b) => valOf(b, it.key)),
+          }))
+          .filter((s) => !hidden[s.key])
+        : []
       return h('section', { className: 'ul-sec' },
         h('div', { className: 'ul-toolbar' },
           h('div', { className: 'ul-secTitle' }, t('dailyTitle')),
@@ -371,20 +461,21 @@ window.__ModuleLoader__.load({
           : !data || totals.length === 0
             ? h('div', { className: 'ul-note' }, t('empty'))
             : h(React.Fragment, null,
-              h(LineChart, { keys, granularity: range.granularity, series }),
+              h(LineChart, { keys, granularity: range.granularity, degraded: !!data.degraded, series }),
               h('div', { className: 'ul-legend' },
-                totals.map((g, gi) => h('button', {
-                  key: g.key, type: 'button',
-                  className: hidden[g.key] ? 'ul-chip ul-chipOff' : 'ul-chip',
-                  onClick: () => setHidden((prev) => ({ ...prev, [g.key]: !prev[g.key] })),
+                legendItems.map((it) => h('button', {
+                  key: it.key, type: 'button',
+                  className: hidden[it.key] ? 'ul-chip ul-chipOff' : 'ul-chip',
+                  onClick: () => setHidden((prev) => ({ ...prev, [it.key]: !prev[it.key] })),
                 },
-                  h('span', { className: 'ul-swatch', style: { background: PALETTE[gi % PALETTE.length] } }),
-                  g.key)))))
+                  h('span', { className: 'ul-swatch', style: { background: it.color } }),
+                  it.key)))))
     }
 
     // ── 52-week heatmap (/heatmap) ─────────────────────────────────────────
-    function HeatmapSection() {
-      const state = useApi('heatmap', { weeks: 52 }, [])
+    function HeatmapSection({ tick }) {
+      const state = useApi('heatmap', { weeks: 52 }, [tick])
+      const [hover, setHover] = React.useState(null) // hovered day index
       if (state.loading || state.error) return h(LoadState, { state })
       const data = state.data
       if (!data || !data.days || data.days.length === 0) return h('div', { className: 'ul-note' }, t('empty'))
@@ -398,16 +489,35 @@ window.__ModuleLoader__.load({
         const r = tokens / max
         return r < 0.25 ? 1 : r < 0.5 ? 2 : r < 0.75 ? 3 : 4
       }
+      const hd = hover !== null ? data.days[hover] : null
+      let tipStyle = null
+      if (hd) {
+        const col = Math.floor(hover / 7); const row = hover % 7
+        const fx = ((col * step + cell / 2) / W) * 100
+        const fy = ((row * step) / H) * 100
+        // flip: right edge → card grows left; top rows → card drops below cell
+        const tx = fx > 82 ? 'translateX(calc(-100% + 10px))' : fx < 10 ? 'translateX(-10px)' : 'translateX(-50%)'
+        const ty = row >= 2 ? 'translateY(calc(-100% - 8px))' : `translateY(${cell + 8}px)`
+        tipStyle = { left: `${fx}%`, top: `${fy}%`, transform: `${tx} ${ty}` }
+      }
       return h('section', { className: 'ul-sec' },
         h('div', { className: 'ul-secTitle' }, t('heatTitle')),
         h('div', { className: 'ul-heatWrap' },
-          h('svg', { className: 'ul-heat', viewBox: `0 0 ${W} ${H}`, style: { maxWidth: `${W}px` }, role: 'img' },
-            data.days.map((d, i) => h('rect', {
-              key: d.day,
-              x: Math.floor(i / 7) * step, y: (i % 7) * step,
-              width: cell, height: cell, rx: 3,
-              class: `ul-heat${level(d.tokens)}`,
-            }, h('title', null, `${d.day}: ${fmtTok(d.tokens)} · ${fmtInt(d.requests)}`))))),
+          h('div', { className: 'ul-heatInner', style: { maxWidth: `${W}px` } },
+            h('svg', { className: 'ul-heat', viewBox: `0 0 ${W} ${H}`, role: 'img' },
+              data.days.map((d, i) => h('rect', {
+                key: d.day,
+                x: Math.floor(i / 7) * step, y: (i % 7) * step,
+                width: cell, height: cell, rx: 3,
+                class: `ul-heat${level(d.tokens)}`,
+                onMouseEnter: () => setHover(i),
+                onMouseLeave: () => setHover(null),
+              }))),
+            hd
+              ? h(ChartTip, { style: tipStyle },
+                h('div', { className: 'ul-tipTitle' }, fmtDayLong(hd.day)),
+                h('div', { className: 'ul-tipRow' }, `${fmtTok(hd.tokens)} tokens · ${fmtInt(hd.requests)} ${t('reqWord')}`))
+              : null)),
         h('div', { className: 'ul-heatLegend' },
           h('span', null, t('less')),
           [0, 1, 2, 3, 4].map((lv) => h('span', { key: lv, className: `ul-heatKey ul-heat${lv}` })),
@@ -415,10 +525,12 @@ window.__ModuleLoader__.load({
     }
 
     // ── model donut (/daily?group=model groupTotals, 30d window) ──────────
-    function DonutSection() {
+    function DonutSection({ tick }) {
       const to = dayKeyOf(new Date())
       const fromDate = new Date(); fromDate.setDate(fromDate.getDate() - 29)
-      const state = useApi('daily', { from: dayKeyOf(fromDate), to, group: 'model', granularity: 'day' }, [])
+      const state = useApi('daily', { from: dayKeyOf(fromDate), to, group: 'model', granularity: 'day' }, [tick])
+      const [hover, setHover] = React.useState(null) // { i, x, y } in wrap px
+      const wrapRef = React.useRef(null)
       if (state.loading || state.error) return h(LoadState, { state })
       const data = state.data
       const totals = data ? data.groupTotals : []
@@ -431,22 +543,47 @@ window.__ModuleLoader__.load({
       const sum = slices.reduce((a, s) => a + s.tokens, 0) || 1
       const R = 48; const C = 2 * Math.PI * R
       let acc = 0
+      const posOf = (e, i) => {
+        const el = wrapRef.current
+        if (!el) return { i, x: 0, y: 0 }
+        const r = el.getBoundingClientRect()
+        return { i, x: e.clientX - r.left, y: e.clientY - r.top }
+      }
+      const hs = hover && slices[hover.i] ? slices[hover.i] : null
       return h('section', { className: 'ul-sec' },
-        h('div', { className: 'ul-secTitle' }, t('donutTitle')),
+        h('div', { className: 'ul-secTitle' }, `${t('donutTitle')}${t('donutWindow')}`),
         h('div', { className: 'ul-donutRow' },
-          h('svg', { width: 132, height: 132, viewBox: '0 0 132 132', role: 'img' },
-            h('circle', { cx: 66, cy: 66, r: R, fill: 'none', stroke: 'var(--dsw-alias-bg-layer-1)', strokeWidth: 18 }),
-            slices.map((s) => {
-              const frac = s.tokens / sum
-              const off = acc
-              acc += frac
-              return h('circle', {
-                key: s.key, cx: 66, cy: 66, r: R, fill: 'none',
-                stroke: s.color, strokeWidth: 18,
-                strokeDasharray: `${Math.max(0, frac * C - 1.5)} ${C - Math.max(0, frac * C - 1.5)}`,
-                strokeDashoffset: -off * C + C / 4,
-              }, h('title', null, `${s.key}: ${fmtTok(s.tokens)} (${(frac * 100).toFixed(1)}%)`))
-            })),
+          h('div', { className: 'ul-donutWrap', ref: wrapRef },
+            h('svg', {
+              width: 132, height: 132, viewBox: '0 0 132 132', role: 'img',
+              onMouseLeave: () => setHover(null),
+            },
+              h('circle', { cx: 66, cy: 66, r: R, fill: 'none', stroke: 'var(--dsw-alias-bg-layer-1)', strokeWidth: 18 }),
+              slices.map((s, si) => {
+                const frac = s.tokens / sum
+                const off = acc
+                acc += frac
+                return h('circle', {
+                  key: s.key, cx: 66, cy: 66, r: R, fill: 'none',
+                  stroke: s.color, strokeWidth: hs && hover.i === si ? 21 : 18,
+                  strokeDasharray: `${Math.max(0, frac * C - 1.5)} ${C - Math.max(0, frac * C - 1.5)}`,
+                  strokeDashoffset: -off * C + C / 4,
+                  onMouseEnter: (e) => setHover(posOf(e, si)),
+                  onMouseMove: (e) => setHover(posOf(e, si)),
+                })
+              })),
+            hs
+              ? h(ChartTip, {
+                style: {
+                  left: hover.x, top: hover.y,
+                  transform: hover.x > 66 ? 'translate(calc(-100% - 10px), -50%)' : 'translate(12px, -50%)',
+                },
+              },
+                h(TipRow, { color: hs.color },
+                  h('span', { className: 'ul-tipName ul-tipStrong' }, hs.key)),
+                h('div', { className: 'ul-tipRow' },
+                  `${fmtTok(hs.tokens)} tokens · ${((hs.tokens / sum) * 100).toFixed(1)}%`))
+              : null),
           h('div', { className: 'ul-donutLegend' },
             slices.map((s) => h('div', { key: s.key, className: 'ul-donutItem' },
               h('span', { className: 'ul-swatch', style: { background: s.color } }),
@@ -455,8 +592,8 @@ window.__ModuleLoader__.load({
     }
 
     // ── tool distribution (/tools) ─────────────────────────────────────────
-    function ToolsSection() {
-      const state = useApi('tools', {}, [])
+    function ToolsSection({ tick }) {
+      const state = useApi('tools', {}, [tick])
       if (state.loading || state.error) return h(LoadState, { state })
       const data = state.data
       const tools = data ? data.tools.slice(0, 12) : []
@@ -481,8 +618,8 @@ window.__ModuleLoader__.load({
 
     // ── sessions table (/sessions, read-only) ──────────────────────────────
     const KIND_LABEL = { main: 'kindMain', subagent: 'kindSub', workflow: 'kindWorkflow' }
-    function SessionsSection() {
-      const state = useApi('sessions', { limit: 30 }, [])
+    function SessionsSection({ tick }) {
+      const state = useApi('sessions', { limit: 30 }, [tick])
       if (state.loading || state.error) return h(LoadState, { state })
       const data = state.data
       const rows = data ? data.rows : []
@@ -497,7 +634,10 @@ window.__ModuleLoader__.load({
           h('span', null, t(KIND_LABEL[row.kind] || 'kindMain')),
           h('span', { className: 'ul-cellDim' }, row.firstDay === row.lastDay ? row.firstDay : `${row.firstDay} ~ ${row.lastDay}`),
           h('span', { className: 'ul-cellNum2' }, fmtInt(row.requests)),
-          h('span', { className: 'ul-cellNum2' }, fmtTok(row.tokens)))))
+          h('span', { className: 'ul-cellNum2' }, fmtTok(row.tokens)))),
+        typeof data.total === 'number'
+          ? h('div', { className: 'ul-note' }, t('sessTotal').replace('{n}', fmtInt(data.total)))
+          : null)
     }
 
     // ── placeholders, filled in one component at a time ────────────────────
@@ -541,7 +681,10 @@ window.__ModuleLoader__.load({
                           h('span', { className: 'ul-cellNum2' }, fmtTok(r.computedTotal)),
                           h('span', { className: 'ul-cellNum2' }, fmtMs(r.firstTokenMs)),
                           h('span', { className: 'ul-cellNum2' }, speed === null ? t('na') : `${speed.toFixed(1)}`))
-                      }))),
+                      }),
+                      d.records.length > records.length
+                        ? h('div', { className: 'ul-note' }, t('recTrunc').replace('{n}', fmtInt(d.records.length)))
+                        : null)),
               tools.length === 0 ? null : h('section', { className: 'ul-sec' },
                 h('div', { className: 'ul-secTitle' }, t('svTools')),
                 h('div', { className: 'ul-toolMini' },
@@ -553,28 +696,29 @@ window.__ModuleLoader__.load({
     function StatusBanner({ status }) {
       if (!status) return null
       const parts = []
-      if (status.degraded) parts.push(t('degraded'))
+      if (status.degraded) parts.push(status.backendError ? `${t('degraded')} (${status.backendError})` : t('degraded'))
       if (status.backfill && status.backfill.running) {
         parts.push(`${t('backfill')} ${status.backfill.done}/${status.backfill.total}…`)
       }
+      if (status.recordFailures > 0) parts.push(`${fmtInt(status.recordFailures)} ${t('recordFail')}`)
       if (parts.length === 0) return null
       return h('div', { className: 'ul-banner' }, parts.join(' '))
     }
 
     function PanelBody({ showBack, goBack }) {
-      const status = useStatus()
+      const { status, refreshTick } = useStatus()
       return h('div', { className: 'ul-page' },
         h('style', null, CSS),
         showBack ? h('div', { className: 'ul-backRow' },
           h('button', { type: 'button', className: 'ul-back', onClick: goBack }, `← ${t('back')}`)) : null,
         h('div', { className: 'ul-panel' },
           h(StatusBanner, { status }),
-          h(SummaryCards),
-          h(DailySection),
-          h(HeatmapSection),
-          h(DonutSection),
-          h(ToolsSection),
-          h(SessionsSection)))
+          h(SummaryCards, { tick: refreshTick }),
+          h(DailySection, { tick: refreshTick }),
+          h(HeatmapSection, { tick: refreshTick }),
+          h(DonutSection, { tick: refreshTick }),
+          h(ToolsSection, { tick: refreshTick }),
+          h(SessionsSection, { tick: refreshTick })))
     }
 
     function PanelPage(props) { return h(PanelBody, { showBack: true, goBack: props.goBack }) }
