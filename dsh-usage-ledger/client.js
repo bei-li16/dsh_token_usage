@@ -45,7 +45,7 @@ window.__ModuleLoader__.load({
       tokPerS: 'tok/s',
       reqWord: '次请求', recordFail: '条写入失败',
       sessTotal: '共 {n} 个会话', recTrunc: '显示前 50 / 共 {n} 条',
-      donutWindow: '（近 30 天）',
+      dwToday: '（今天）', donutRange: '（近 {n}）',
     }
     const en = {
       nav: 'Usage ledger', tab: 'Usage', back: 'Back', loading: 'Loading…',
@@ -71,7 +71,7 @@ window.__ModuleLoader__.load({
       tokPerS: 'tok/s',
       reqWord: 'requests', recordFail: 'write failures',
       sessTotal: '{n} sessions', recTrunc: 'showing first 50 of {n}',
-      donutWindow: ' (last 30 days)',
+      dwToday: ' (Today)', donutRange: ' (last {n})',
     }
 
     // t is bound in apply() before any component renders.
@@ -530,8 +530,7 @@ window.__ModuleLoader__.load({
           : null)
     }
 
-    function DailySection({ tick }) {
-      const [rangeId, setRangeId] = React.useState('30')
+    function DailySection({ tick, rangeId, onRange }) {
       const [hidden, setHidden] = React.useState({})
       const range = RANGES.find((r) => r.id === rangeId) || RANGES[2]
       const to = dayKeyOf(new Date())
@@ -574,7 +573,7 @@ window.__ModuleLoader__.load({
             RANGES.map((r) => h('button', {
               key: r.id, type: 'button',
               className: r.id === rangeId ? 'ul-segBtn ul-segActive' : 'ul-segBtn',
-              onClick: () => setRangeId(r.id),
+              onClick: () => onRange(r.id),
             }, t(r.label))))),
         state.loading || state.error
           ? h(LoadState, { state })
@@ -766,10 +765,13 @@ window.__ModuleLoader__.load({
     // ── model donut (/daily?group=model groupTotals, 30d window) ──────────
     const DONUT_R = 48
     const DONUT_C = 2 * Math.PI * DONUT_R
-    function DonutSection({ tick }) {
+    function DonutSection({ tick, rangeId }) {
+      // The donut follows the shared range selector (was: fixed 30-day window).
+      const range = RANGES.find((r) => r.id === rangeId) || RANGES[2]
       const to = dayKeyOf(new Date())
-      const fromDate = new Date(); fromDate.setDate(fromDate.getDate() - 29)
-      const state = useApi('daily', { from: dayKeyOf(fromDate), to, group: 'model', granularity: 'day' }, [tick])
+      const fromDate = new Date(); fromDate.setDate(fromDate.getDate() - (range.days - 1))
+      const state = useApi('daily', { from: dayKeyOf(fromDate), to, group: 'model', granularity: 'day' }, [rangeId, tick])
+      const rangeSuffix = range.id === 'today' ? t('dwToday') : t('donutRange').replace('{n}', t(range.label))
       const [hover, setHover] = React.useState(null) // { i, x, y } in wrap px
       const wrapRef = React.useRef(null)
       const arcsRef = React.useRef({})
@@ -827,7 +829,7 @@ window.__ModuleLoader__.load({
       }
       const hs = hover && slices[hover.i] ? slices[hover.i] : null
       return h('section', { className: 'ul-chartCard' },
-        h('div', { className: 'ul-secTitle' }, `${t('donutTitle')}${t('donutWindow')}`),
+        h('div', { className: 'ul-secTitle' }, `${t('donutTitle')}${rangeSuffix}`),
         h('div', { className: 'ul-donutRow' },
           h('div', { className: 'ul-donutWrap', ref: wrapRef },
             h('svg', {
@@ -1001,6 +1003,8 @@ window.__ModuleLoader__.load({
 
     function PanelBody({ showBack, goBack }) {
       const { status, refreshTick } = useStatus()
+      // Range selector is shared by the daily line chart AND the donut.
+      const [rangeId, setRangeId] = React.useState('30')
       return h('div', { className: 'ul-page' },
         h('style', null, CSS),
         showBack ? h('div', { className: 'ul-backRow' },
@@ -1008,9 +1012,9 @@ window.__ModuleLoader__.load({
         h('div', { className: 'ul-panel' },
           h(StatusBanner, { status }),
           h(SummaryCards, { tick: refreshTick }),
-          h(DailySection, { tick: refreshTick }),
+          h(DailySection, { tick: refreshTick, rangeId, onRange: setRangeId }),
           h(HeatmapSection, { tick: refreshTick }),
-          h(DonutSection, { tick: refreshTick }),
+          h(DonutSection, { tick: refreshTick, rangeId }),
           h('div', { className: 'ul-foldGrid' },
             h(FoldCard, { title: t('toolsTitle') }, h(ToolsTable, { tick: refreshTick })),
             h(FoldCard, { title: t('sessTitle') }, h(SessionsTable, { tick: refreshTick })))))
