@@ -204,7 +204,7 @@ if (typeof onEvent === 'function') {
 // 采集器 disposer + store dispose（避免句柄悬挂）。
 for (const [, d] of disposers) { try { d() } catch { /* ignore */ } }
 const g = globalThis
-if (g.__dshUsageLedgerStore?.dispose) await g.__dshUsageLedgerStore.dispose()
+if (g.__dshUsageLedgerStoreV2?.dispose) await g.__dshUsageLedgerStoreV2.dispose()
 
 rmSync(fakeHome, { recursive: true, force: true })
 console.log(passed > 0 && process.exitCode === undefined ? `\nverify-host OK: ${passed} checks passed` : `\nverify-host done with failures (${passed} passed)`)

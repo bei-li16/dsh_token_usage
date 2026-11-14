@@ -57,7 +57,10 @@ function normalizeConfig(config) {
  * domain handle stays valid for the process lifetime, so one store is reused
  * across fibers. (Same failure mode dsh-token-total documented for its store.)
  */
-const STORE_KEY = '__dshUsageLedgerStore'
+// v2: the v1 instance may sit degraded in a live process (the 2026-11-14
+// poisoned day_tool row incident); a fresh key lets a plugin toggle heal it
+// without an app restart.
+const STORE_KEY = '__dshUsageLedgerStoreV2'
 
 function sharedStore(ctx, config) {
   const g = /** @type {Record<string, unknown>} */ (/** @type {unknown} */ (globalThis))

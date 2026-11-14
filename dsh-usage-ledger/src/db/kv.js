@@ -29,9 +29,9 @@ function str(value, fallback = '') {
 }
 
 function plainObject(value) {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-    throw new Error('record must be a plain object')
-  }
+  // 派生缓存自愈原则：坏行一律归一为可加载的死行，绝不 throw——一次 throw
+  // 会让 single-document 后端的整域 open 失败（backup-and-skip 对它无效）。
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return {}
   return value
 }
 
@@ -42,9 +42,9 @@ function schemaOf(normalize) {
 
 const daySchema = schemaOf((value) => {
   const v = plainObject(value)
-  if (typeof v.day !== 'string' || v.day === '') throw new Error('day rollup requires day')
+  const day = typeof v.day === 'string' ? v.day : ''
   return {
-    ...emptyDayRollup(v.day),
+    ...emptyDayRollup(day),
     tokens: num(v.tokens),
     inputTokens: num(v.inputTokens),
     outputTokens: num(v.outputTokens),
@@ -67,10 +67,10 @@ const daySchema = schemaOf((value) => {
 
 const dayModelSchema = schemaOf((value) => {
   const v = plainObject(value)
-  if (typeof v.day !== 'string' || v.day === '') throw new Error('day_model rollup requires day')
-  if (typeof v.model !== 'string') throw new Error('day_model rollup requires model')
+  const day = typeof v.day === 'string' ? v.day : ''
+  const model = typeof v.model === 'string' && v.model !== '' ? v.model : '(unknown)'
   return {
-    ...emptyDayModelRollup(v.day, v.model),
+    ...emptyDayModelRollup(day, model),
     tokens: num(v.tokens),
     inputTokens: num(v.inputTokens),
     outputTokens: num(v.outputTokens),
@@ -84,10 +84,10 @@ const dayModelSchema = schemaOf((value) => {
 
 const dayKindSchema = schemaOf((value) => {
   const v = plainObject(value)
-  if (typeof v.day !== 'string' || v.day === '') throw new Error('day_kind rollup requires day')
-  if (typeof v.kind !== 'string' || v.kind === '') throw new Error('day_kind rollup requires kind')
+  const day = typeof v.day === 'string' ? v.day : ''
+  const kind = typeof v.kind === 'string' && v.kind !== '' ? v.kind : 'main'
   return {
-    ...emptyDayKindRollup(v.day, v.kind),
+    ...emptyDayKindRollup(day, kind),
     tokens: num(v.tokens),
     requests: num(v.requests),
     failures: num(v.failures),
@@ -97,10 +97,13 @@ const dayKindSchema = schemaOf((value) => {
 
 const dayToolSchema = schemaOf((value) => {
   const v = plainObject(value)
-  if (typeof v.day !== 'string' || v.day === '') throw new Error('day_tool rollup requires day')
-  if (typeof v.tool !== 'string' || v.tool === '') throw new Error('day_tool rollup requires tool')
+  // 防御：空工具名历史毒行（见 2026-11-14 事故）在此归一为 '(unknown)'——
+  // 单行问题绝不能否决整个 domain 的 open（single-document 后端没有
+  // backupRecord，backup-and-skip 会退化为整域拒开）。
+  const day = typeof v.day === 'string' ? v.day : ''
+  const tool = typeof v.tool === 'string' && v.tool !== '' ? v.tool : '(unknown)'
   return {
-    ...emptyDayToolRollup(v.day, v.tool),
+    ...emptyDayToolRollup(day, tool),
     calls: num(v.calls),
     failures: num(v.failures),
     durationMsSum: num(v.durationMsSum),
@@ -109,9 +112,8 @@ const dayToolSchema = schemaOf((value) => {
 
 const sessionSchema = schemaOf((value) => {
   const v = plainObject(value)
-  if (typeof v.id !== 'string' || v.id === '') throw new Error('session row requires id')
   const row = {
-    ...emptySessionIndexRow(v.id),
+    ...emptySessionIndexRow(typeof v.id === 'string' ? v.id : ''),
     parentId: typeof v.parentId === 'string' && v.parentId !== '' ? v.parentId : null,
     kind: str(v.kind, 'main'),
     name: str(v.name),

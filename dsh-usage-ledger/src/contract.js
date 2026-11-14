@@ -194,7 +194,10 @@ export function normalizeToolFact(f) {
     kind: KINDS.includes(/** @type {SessionKind} */ (f.kind)) ? /** @type {SessionKind} */ (f.kind) : (f.parentId ? 'subagent' : 'main'),
     turn: num(f.turn),
     step: num(f.step),
-    name: String(f.name),
+    // A tool/result whose tool/call opener is outside the folded window
+    // (install boundary, fork cut, cursor split) carries no name; an empty
+    // name must never reach a rollup key — it poisons the day_tool table.
+    name: typeof f.name === 'string' && f.name !== '' ? f.name : '(unknown)',
     time,
     finishedAt,
     day: typeof f.day === 'string' && f.day !== '' ? f.day : dayKey(time),
