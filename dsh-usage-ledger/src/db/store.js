@@ -42,7 +42,7 @@ const RECENT_FACTS_CAP = 10000
 const SESSION_RECORDS_CAP = 500
 /** Store 代码代际：index.js 的全局单例发现代际不符时 dispose 旧实例重建
  *  （插件 toggle 即可升级 store，无需重启应用）。 */
-export const STORE_VERSION = 2
+export const STORE_VERSION = 3
 
 /** 错误对象 → 单行安全文本（status.backendError 用）。 */
 function sanitizeError(err) {
@@ -551,7 +551,8 @@ export function createLedgerStore({ storageDomain, config, logger }) {
       if (needle !== null) {
         rows = rows.filter((row) => row.id.toLowerCase().includes(needle) || (row.name ?? '').toLowerCase().includes(needle))
       }
-      rows.sort((a, b) => (b.lastSeen - a.lastSeen) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+      // 排序：token 消耗降序（用户验收口径），同量按最近活跃，再按 id 稳定。
+      rows.sort((a, b) => ((b.tokens ?? 0) - (a.tokens ?? 0)) || (b.lastSeen - a.lastSeen) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
       return { total: rows.length, rows: rows.slice(offset, offset + limit) }
     },
 
