@@ -247,6 +247,8 @@ window.__ModuleLoader__.load({
 .ul-toolMini{display:flex;flex-wrap:wrap;gap:8px}
 .ul-foldGrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
 @media (max-width:1100px){.ul-foldGrid{grid-template-columns:1fr}}
+.ul-mixGrid{display:grid;grid-template-columns:minmax(280px,1fr) minmax(0,2fr);gap:14px;align-items:stretch}
+@media (max-width:1100px){.ul-mixGrid{grid-template-columns:1fr}}
 .ul-foldCard{display:flex;flex-direction:column;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);min-width:0;overflow:hidden}
 .ul-foldHead{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;cursor:pointer;user-select:none;border-radius:10px}
 .ul-foldHead:hover{background:var(--dsw-alias-interactive-bg-hover)}
@@ -1012,9 +1014,10 @@ window.__ModuleLoader__.load({
         h('div', { className: 'ul-panel' },
           h(StatusBanner, { status }),
           h(SummaryCards, { tick: refreshTick }),
-          h(DailySection, { tick: refreshTick, rangeId, onRange: setRangeId }),
           h(HeatmapSection, { tick: refreshTick }),
-          h(DonutSection, { tick: refreshTick, rangeId }),
+          h('div', { className: 'ul-mixGrid' },
+            h(DonutSection, { tick: refreshTick, rangeId }),
+            h(DailySection, { tick: refreshTick, rangeId, onRange: setRangeId })),
           h('div', { className: 'ul-foldGrid' },
             h(FoldCard, { title: t('toolsTitle') }, h(ToolsTable, { tick: refreshTick })),
             h(FoldCard, { title: t('sessTitle') }, h(SessionsTable, { tick: refreshTick })))))
