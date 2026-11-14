@@ -139,6 +139,7 @@ window.__ModuleLoader__.load({
     const fmtInt = (n) => (typeof n === 'number' && Number.isFinite(n) ? Math.round(n).toLocaleString('en-US') : t('na'))
     const fmtTok = (n) => {
       if (typeof n !== 'number' || !Number.isFinite(n)) return t('na')
+      if (n >= 1e9) return `${(n / 1e9).toFixed(2)}B`
       if (n >= 1e6) return `${(n / 1e6).toFixed(1)}M`
       if (n >= 1e3) return `${(n / 1e3).toFixed(1)}k`
       return String(Math.round(n))
@@ -180,7 +181,7 @@ window.__ModuleLoader__.load({
 .ul-cardValue{font-size:18px;font-weight:600;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ul-cardSub{font-size:11px;color:var(--dsw-alias-label-tertiary);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ul-band{display:flex;flex-wrap:wrap;box-sizing:border-box;border:1px solid var(--dsw-alias-border-l2);border-radius:10px;background:var(--dsw-alias-bg-layer-1)}
-.ul-bandItem{flex:1 1 118px;min-width:0;box-sizing:border-box;padding:12px 14px}
+.ul-bandItem{flex:1 1 118px;min-width:0;box-sizing:border-box;padding:12px 14px;position:relative;cursor:default}
 .ul-bandItem+.ul-bandItem{border-left:1px solid var(--dsw-alias-border-l2)}
 .ul-bandValue{font-size:19px;font-weight:600;color:var(--dsw-alias-label-primary);font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ul-bandLabel{font-size:12px;color:var(--dsw-alias-label-tertiary);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -196,7 +197,7 @@ window.__ModuleLoader__.load({
 .ul-segActive,.ul-segActive:hover{background:color-mix(in srgb,var(--dsw-tone-1) 14%,transparent);color:var(--dsw-tone-1);font-weight:600}
 .ul-chart{width:100%;height:auto;display:block}
 .ul-chartWrap{position:relative}
-.ul-tip{position:absolute;z-index:5;pointer-events:none;box-sizing:border-box;min-width:132px;max-width:260px;padding:8px 10px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2,var(--dsw-alias-bg-layer-1));box-shadow:0 4px 16px rgba(0,0,0,.24);font-size:12px;line-height:1.5;color:var(--dsw-alias-label-primary)}
+.ul-tip{position:absolute;z-index:20;pointer-events:none;box-sizing:border-box;min-width:132px;max-width:260px;padding:8px 10px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2,var(--dsw-alias-bg-layer-1));box-shadow:0 4px 16px rgba(0,0,0,.24);font-size:12px;line-height:1.5;color:var(--dsw-alias-label-primary)}
 .ul-tipTitle{font-weight:600;color:var(--dsw-alias-label-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ul-tipRow{display:flex;align-items:center;gap:6px;color:var(--dsw-alias-label-secondary);white-space:nowrap;margin-top:2px}
 .ul-tipDot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
@@ -276,13 +277,24 @@ window.__ModuleLoader__.load({
     }
 
     // One strip item of the overview band: big value on top, small label
-    // below, optional sub line last. Vertical 1px dividers come from CSS
-    // (.ul-bandItem + .ul-bandItem), so the first item has none.
-    function BandItem({ label, value, sub }) {
-      return h('div', { className: 'ul-bandItem' },
+    // below, and NOTHING truncated — full precision lives in the hover card
+    // (detail rows with per-metric color dots). Vertical 1px dividers come
+    // from CSS (.ul-bandItem + .ul-bandItem), so the first item has none.
+    function BandItem({ label, value, detail }) {
+      const [hov, setHov] = React.useState(false)
+      return h('div', {
+        className: 'ul-bandItem',
+        onMouseEnter: () => setHov(true),
+        onMouseLeave: () => setHov(false),
+      },
         h('div', { className: 'ul-bandValue' }, value),
         h('div', { className: 'ul-bandLabel' }, label),
-        sub ? h('div', { className: 'ul-bandSub' }, sub) : null)
+        hov && Array.isArray(detail) && detail.length > 0
+          ? h(ChartTip, { style: { left: '50%', top: 'calc(100% + 6px)', transform: 'translateX(-50%)', whiteSpace: 'nowrap' } },
+            detail.map((r) => h(TipRow, { key: `${r.name}:${r.value}`, color: r.color ?? null },
+              h('span', { className: 'ul-tipName' }, r.name),
+              h('span', { className: 'ul-tipVal' }, r.value))))
+          : null)
     }
 
     // ── shared chart tooltip (styled card; replaces native <title>) ───────
@@ -305,16 +317,40 @@ window.__ModuleLoader__.load({
       if (state.loading || state.error) return h(LoadState, { state })
       const s = state.data
       if (!s) return h('div', { className: 'ul-note' }, t('empty'))
+      const tokRow = (color, name, v) => ({ color, name, value: `${fmtInt(v)} tokens` })
       return h('section', { className: 'ul-sec' },
         h('div', { className: 'ul-secTitle' }, t('sumTitle')),
         h('div', { className: 'ul-band' },
-          h(BandItem, { label: t('totalTokens'), value: fmtTok(s.tokens), sub: `${t('inputTok')} ${fmtTok(s.inputTokens)} · ${t('outputTok')} ${fmtTok(s.outputTokens)}` }),
-          h(BandItem, { label: t('requests'), value: fmtInt(s.requests), sub: `${t('failures')} ${fmtInt(s.failures)} · ${t('errorRate')} ${fmtPct(s.errorRate)}` }),
-          h(BandItem, { label: t('cacheHit'), value: fmtPct(s.cacheHitRate), sub: `${t('cacheReadTok')} ${fmtTok(s.cacheReadTokens)} · ${t('cacheWriteTok')} ${fmtTok(s.cacheWriteTokens)}` }),
-          h(BandItem, { label: t('avgTtft'), value: fmtMs(s.avgFirstTokenMs) }),
-          h(BandItem, { label: t('decodeSpeed'), value: fmtSpeed(s.tokensPerSecond) }),
-          h(BandItem, { label: t('streak'), value: `${fmtInt(s.streakDays)} ${t('streakUnit')}`, sub: `${t('activeDays')} ${fmtInt(s.activeDays)}` }),
-          s.peakDay ? h(BandItem, { label: t('peakDay'), value: fmtTok(s.peakDay.tokens), sub: s.peakDay.day }) : null))
+          h(BandItem, { label: t('totalTokens'), value: fmtTok(s.tokens), detail: [
+            tokRow(PALETTE[0], t('inputTok'), s.inputTokens),
+            tokRow(PALETTE[1], t('outputTok'), s.outputTokens),
+            tokRow(PALETTE[4], t('cacheReadTok'), s.cacheReadTokens),
+            tokRow(PALETTE[2], t('cacheWriteTok'), s.cacheWriteTokens),
+          ] }),
+          h(BandItem, { label: t('requests'), value: fmtInt(s.requests), detail: [
+            { color: null, name: t('requests'), value: fmtInt(s.requests) },
+            { color: PALETTE[3], name: t('failures'), value: fmtInt(s.failures) },
+            { color: null, name: t('errorRate'), value: fmtPct(s.errorRate) },
+          ] }),
+          h(BandItem, { label: t('cacheHit'), value: fmtPct(s.cacheHitRate), detail: [
+            { color: null, name: t('cacheHit'), value: fmtPct(s.cacheHitRate) },
+            tokRow(PALETTE[4], t('cacheReadTok'), s.cacheReadTokens),
+            tokRow(PALETTE[2], t('cacheWriteTok'), s.cacheWriteTokens),
+          ] }),
+          h(BandItem, { label: t('avgTtft'), value: fmtMs(s.avgFirstTokenMs), detail: [
+            { color: null, name: t('avgTtft'), value: s.avgFirstTokenMs === null ? t('na') : `${fmtInt(s.avgFirstTokenMs)} ms` },
+          ] }),
+          h(BandItem, { label: t('decodeSpeed'), value: fmtSpeed(s.tokensPerSecond), detail: [
+            { color: null, name: t('decodeSpeed'), value: fmtSpeed(s.tokensPerSecond) },
+          ] }),
+          h(BandItem, { label: t('streak'), value: `${fmtInt(s.streakDays)} ${t('streakUnit')}`, detail: [
+            { color: null, name: t('streak'), value: `${fmtInt(s.streakDays)} ${t('streakUnit')}` },
+            { color: null, name: t('activeDays'), value: `${fmtInt(s.activeDays)} ${t('streakUnit')}` },
+          ] }),
+          s.peakDay ? h(BandItem, { label: t('peakDay'), value: fmtTok(s.peakDay.tokens), detail: [
+            { color: null, name: t('peakDay'), value: `${fmtInt(s.peakDay.tokens)} tokens` },
+            { color: null, name: '', value: s.peakDay.day },
+          ] }) : null))
     }
 
     // ── chart series palette (artwork exception: literals allowed) ────────
@@ -1030,7 +1066,7 @@ window.__ModuleLoader__.load({
     function PanelBody({ showBack, goBack }) {
       const { status, refreshTick } = useStatus()
       // Range selector is shared by the daily line chart AND the donut.
-      const [rangeId, setRangeId] = React.useState('30')
+      const [rangeId, setRangeId] = React.useState('today')
       return h('div', { className: 'ul-page' },
         h('style', null, CSS),
         showBack ? h('div', { className: 'ul-backRow' },
