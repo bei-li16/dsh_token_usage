@@ -220,9 +220,9 @@ window.__ModuleLoader__.load({
 .ul-heat4{fill:color-mix(in srgb,var(--dsw-tone-1) 85%,transparent)}
 .ul-heatLegend{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--dsw-alias-label-tertiary)}
 .ul-heatKey{width:12px;height:12px;border-radius:3px;display:inline-block}
-.ul-donutRow{display:flex;flex-wrap:wrap;align-items:center;gap:20px}
-.ul-donutWrap{position:relative;flex:0 0 auto}
-.ul-donutLegend{display:flex;flex-direction:column;gap:6px;min-width:0}
+.ul-donutRow{display:flex;flex-direction:column;align-items:center;gap:14px}
+.ul-donutWrap{position:relative;flex:0 0 auto;width:min(58%,220px)}
+.ul-donutLegend{width:100%;display:flex;flex-direction:column;gap:6px;min-width:0}
 .ul-donutItem{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dsw-alias-label-secondary)}
 .ul-donutName{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:260px}
 .ul-donutPct{color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}
@@ -835,7 +835,8 @@ window.__ModuleLoader__.load({
         h('div', { className: 'ul-donutRow' },
           h('div', { className: 'ul-donutWrap', ref: wrapRef },
             h('svg', {
-              width: 132, height: 132, viewBox: '0 0 132 132', role: 'img',
+              viewBox: '0 0 132 132', role: 'img',
+              style: { width: '100%', height: 'auto', display: 'block' },
               onMouseLeave: () => setHover(null),
             },
               h('circle', { cx: 66, cy: 66, r: R, fill: 'none', stroke: 'var(--dsw-alias-bg-layer-1)', strokeWidth: 18 }),
