@@ -208,6 +208,8 @@ window.__ModuleLoader__.load({
 .ul-chip:hover{background:var(--dsw-alias-interactive-bg-hover)}
 .ul-chipOff{opacity:.45}
 .ul-swatch{width:10px;height:10px;border-radius:3px;flex:0 0 auto}
+.ul-chartCard{display:flex;flex-direction:column;gap:12px;box-sizing:border-box;padding:14px 16px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1)}
+.ul-cardHead{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
 .ul-heatWrap{overflow-x:auto}
 .ul-heatInner{position:relative;width:100%}
 .ul-heat{width:100%;height:auto;display:block}
@@ -508,8 +510,8 @@ window.__ModuleLoader__.load({
           }))
           .filter((s) => !hidden[s.key])
         : []
-      return h('section', { className: 'ul-sec' },
-        h('div', { className: 'ul-toolbar' },
+      return h('section', { className: 'ul-chartCard' },
+        h('div', { className: 'ul-cardHead' },
           h('div', { className: 'ul-secTitle' }, t('dailyTitle')),
           h('div', { className: 'ul-seg' },
             RANGES.map((r) => h('button', {
@@ -589,18 +591,25 @@ window.__ModuleLoader__.load({
       const state = useApi('heatmap', { weeks: 52 }, [tick])
       const [hover, setHover] = React.useState(null) // hovered data cell
       const [mode, setMode] = React.useState('day')
-      const wrapRef = React.useRef(null)
+      // Callback ref (not useEffect+useRef): the wrap only exists AFTER the
+      // data arrives — a mount-time effect would see null and never observe,
+      // pinning wrapW at 0 and the grid at minimum step.
+      const roRef = React.useRef(null)
       const [wrapW, setWrapW] = React.useState(0)
-      React.useEffect(() => {
-        const el = wrapRef.current
-        if (!el || typeof ResizeObserver !== 'function') return undefined
-        const ro = new ResizeObserver((entries) => {
-          const w = entries[0]?.contentRect?.width
-          if (typeof w === 'number' && w > 0) setWrapW(Math.floor(w))
-        })
-        ro.observe(el)
-        return () => ro.disconnect()
+      const wrapRef = React.useCallback((el) => {
+        if (roRef.current) { roRef.current.disconnect(); roRef.current = null }
+        if (el && typeof ResizeObserver === 'function') {
+          const seed = el.getBoundingClientRect().width
+          if (seed > 0) setWrapW(Math.floor(seed))
+          const ro = new ResizeObserver((entries) => {
+            const w = entries[0]?.contentRect?.width
+            if (typeof w === 'number' && w > 0) setWrapW(Math.floor(w))
+          })
+          ro.observe(el)
+          roRef.current = ro
+        }
       }, [])
+      React.useEffect(() => () => { if (roRef.current) roRef.current.disconnect() }, [])
       if (state.loading || state.error) return h(LoadState, { state })
       const data = state.data
       if (!data || !data.days || data.days.length === 0) return h('div', { className: 'ul-note' }, t('empty'))
@@ -654,8 +663,8 @@ window.__ModuleLoader__.load({
         const ty = hover.row >= 2 ? 'translateY(calc(-100% - 8px))' : `translateY(${geo.cell + 8}px)`
         tipStyle = { left: `${fx}%`, top: `${fy}%`, transform: `${tx} ${ty}` }
       }
-      return h('section', { className: 'ul-sec' },
-        h('div', { className: 'ul-toolbar' },
+      return h('section', { className: 'ul-chartCard' },
+        h('div', { className: 'ul-cardHead' },
           h('div', { className: 'ul-secTitle' }, t('heatTitle')),
           h('div', { className: 'ul-seg' },
             HEAT_MODES.map((m) => h('button', {
@@ -757,7 +766,7 @@ window.__ModuleLoader__.load({
         return { i, x: e.clientX - r.left, y: e.clientY - r.top }
       }
       const hs = hover && slices[hover.i] ? slices[hover.i] : null
-      return h('section', { className: 'ul-sec' },
+      return h('section', { className: 'ul-chartCard' },
         h('div', { className: 'ul-secTitle' }, `${t('donutTitle')}${t('donutWindow')}`),
         h('div', { className: 'ul-donutRow' },
           h('div', { className: 'ul-donutWrap', ref: wrapRef },
@@ -806,7 +815,7 @@ window.__ModuleLoader__.load({
       const data = state.data
       const tools = data ? data.tools.slice(0, 12) : []
       if (!data || tools.length === 0) return h('div', { className: 'ul-note' }, t('empty'))
-      return h('section', { className: 'ul-sec' },
+      return h('section', { className: 'ul-chartCard' },
         h('div', { className: 'ul-secTitle' }, t('toolsTitle')),
         h('div', { className: 'ul-table ul-toolHead' },
           h('span', null, t('tName')), h('span', null, t('tCalls')),
@@ -832,7 +841,7 @@ window.__ModuleLoader__.load({
       const data = state.data
       const rows = data ? data.rows : []
       if (!data || rows.length === 0) return h('div', { className: 'ul-note' }, t('empty'))
-      return h('section', { className: 'ul-sec' },
+      return h('section', { className: 'ul-chartCard' },
         h('div', { className: 'ul-secTitle' }, t('sessTitle')),
         h('div', { className: 'ul-table ul-sessHead' },
           h('span', null, t('sName')), h('span', null, t('sKind')),
