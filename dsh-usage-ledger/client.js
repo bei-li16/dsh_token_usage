@@ -934,10 +934,33 @@ window.__ModuleLoader__.load({
 
     // ── foldable side-by-side cards (tools + sessions) ─────────────────────
     // Collapsed by default; the table child mounts (and fetches) only on first
-    // expand. Body is capped at ~10 rows and scrolls beyond.
+    // expand. The open body measures the REMAINING viewport height and grows
+    // into it (page-bottom − card-head − margins, clamped) so the space below
+    // is used without ever pushing the page itself into a scrollbar.
     function FoldCard({ title, children }) {
       const [open, setOpen] = React.useState(false)
-      return h('section', { className: 'ul-foldCard' },
+      const cardRef = React.useRef(null)
+      const [bodyMaxH, setBodyMaxH] = React.useState(290)
+      React.useLayoutEffect(() => {
+        if (!open) return undefined
+        const el = cardRef.current
+        if (!el) return undefined
+        const compute = () => {
+          const head = el.querySelector('.ul-foldHead')
+          const headBottom = head ? head.getBoundingClientRect().bottom : el.getBoundingClientRect().top
+          const page = el.closest('.ul-page')
+          const pageBottom = page ? page.getBoundingClientRect().bottom : window.innerHeight
+          const avail = Math.floor(pageBottom - headBottom - 26) // card padding/border + breathing room
+          setBodyMaxH((prev) => {
+            const next = Math.max(180, Math.min(900, avail))
+            return Math.abs(prev - next) > 4 ? next : prev
+          })
+        }
+        compute()
+        window.addEventListener('resize', compute)
+        return () => window.removeEventListener('resize', compute)
+      }, [open])
+      return h('section', { className: 'ul-foldCard', ref: cardRef },
         h('div', {
           className: 'ul-foldHead', role: 'button', tabIndex: 0,
           'aria-expanded': open,
@@ -948,7 +971,7 @@ window.__ModuleLoader__.load({
           h('span', { className: open ? 'ul-chev ul-chevOpen' : 'ul-chev', 'aria-hidden': true },
             h('svg', { width: 12, height: 12, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2.4, strokeLinecap: 'round', strokeLinejoin: 'round' },
               h('path', { d: 'M9 6l6 6-6 6' })))),
-        open ? h('div', { className: 'ul-foldBody' }, children) : null)
+        open ? h('div', { className: 'ul-foldBody', style: { maxHeight: bodyMaxH } }, children) : null)
     }
 
     // ── tool distribution (/tools) ─────────────────────────────────────────
