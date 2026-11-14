@@ -210,7 +210,7 @@ window.__ModuleLoader__.load({
 .ul-swatch{width:10px;height:10px;border-radius:3px;flex:0 0 auto}
 .ul-chartCard{display:flex;flex-direction:column;gap:12px;box-sizing:border-box;padding:14px 16px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1)}
 .ul-cardHead{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
-.ul-heatWrap{overflow-x:auto}
+.ul-heatWrap{}
 .ul-heatInner{position:relative;width:100%}
 .ul-heat{width:100%;height:auto;display:block}
 .ul-heat0{fill:color-mix(in srgb,var(--dsw-tone-1) 14%,transparent)}
@@ -374,7 +374,7 @@ window.__ModuleLoader__.load({
     ]
 
     function LineChart({ keys, granularity, degraded, series, animKey }) {
-      const W = 720; const H = 240; const padL = 46; const padR = 8; const padT = 12; const padB = 22
+      const W = 720; const H = 240; const padL = 46; const padR = 24; const padT = 12; const padB = 22
       const n = keys.length
       const [hover, setHover] = React.useState(null) // hovered bucket index
       // Entrance "draw" animation. Trigger key = the fetched data reference
@@ -463,9 +463,16 @@ window.__ModuleLoader__.load({
                 ref: (el) => { if (el) pathsRef.current[s.key] = el; else delete pathsRef.current[s.key] },
               }))
           }),
-          tickIdx.map((i) => h('text', {
-            key: keys[i], x: x(i), y: H - 6, textAnchor: 'middle', fontSize: 10, fill: 'var(--dsw-alias-label-tertiary)',
-          }, labelOf(keys[i])))),
+          tickIdx.map((i) => {
+            // End labels anchor inward so they never overflow the viewBox
+            // (was: middle-anchored last label clipped at the right edge).
+            const atEnd = i === n - 1
+            const anchor = i === 0 ? 'start' : atEnd ? 'end' : 'middle'
+            const lx = i === 0 ? padL : atEnd ? W - padR : x(i)
+            return h('text', {
+              key: keys[i], x: lx, y: H - 6, textAnchor: anchor, fontSize: 10, fill: 'var(--dsw-alias-label-tertiary)',
+            }, labelOf(keys[i]))
+          })),
         hi !== null
           ? h(ChartTip, {
             style: {
@@ -564,7 +571,9 @@ window.__ModuleLoader__.load({
       const weekEndMs = todayMs + (6 - heatRowOf(todayMs)) * HEAT_DAY_MS // Sunday of the current week
       const totalDays = Math.round((weekEndMs - weekStartMs) / HEAT_DAY_MS) + 1
       const cols = Math.ceil(totalDays / 7)
-      const step = Math.max(6, Math.floor(Math.max(0, availW) / cols))
+      // Fractional step: the grid fills the measured width EXACTLY (integer
+      // stepping used to leave up to a column of slack on the right).
+      const step = Math.max(6, availW / cols)
       const cell = Math.max(4, step - HEAT_GAP)
       const width = HEAT_GUTTER + cols * step
       const height = 7 * step + HEAT_LABEL_H

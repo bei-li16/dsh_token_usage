@@ -18,7 +18,8 @@ function heatGeometry(firstDay, todayDay, availW) {
   const weekEndMs = todayMs + (6 - heatRowOf(todayMs)) * HEAT_DAY_MS
   const totalDays = Math.round((weekEndMs - weekStartMs) / HEAT_DAY_MS) + 1
   const cols = Math.ceil(totalDays / 7)
-  const step = Math.max(6, Math.floor(Math.max(0, availW) / cols))
+  // Fractional step: the grid fills the measured width EXACTLY.
+  const step = Math.max(6, availW / cols)
   const cell = Math.max(4, step - HEAT_GAP)
   const width = HEAT_GUTTER + cols * step
   const height = 7 * step + HEAT_LABEL_H
@@ -79,8 +80,8 @@ for (const wrapW of [600, 795, 1080, 1400]) {
     const geo = heatGeometry('2025-11-14', '2026-11-14', wrapW - HEAT_GUTTER)
     assert.ok(geo.step >= 6, `step ${geo.step} >= 6`)
     assert.ok(geo.cell >= 4, `cell ${geo.cell} >= 4`)
-    assert.ok(geo.width <= wrapW, `width ${geo.width} <= ${wrapW}`)
-    assert.ok(geo.width > wrapW - geo.cols, 'slack below one column span')
+    // exact fill: width == container (within float epsilon)
+    assert.ok(Math.abs(geo.width - wrapW) < 1e-9, `width ${geo.width} fills ${wrapW}`)
     assert.equal(geo.cell, geo.step - HEAT_GAP, 'cells stay square')
   })
 }
