@@ -221,8 +221,8 @@ window.__ModuleLoader__.load({
 .ul-heatLegend{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--dsw-alias-label-tertiary)}
 .ul-heatKey{width:12px;height:12px;border-radius:3px;display:inline-block}
 .ul-donutRow{display:flex;flex-direction:column;align-items:center;gap:14px}
-.ul-donutWrap{position:relative;flex:0 0 auto;width:min(58%,220px)}
-.ul-donutLegend{width:100%;display:flex;flex-direction:column;gap:6px;min-width:0}
+.ul-donutWrap{position:relative;flex:0 0 auto}
+.ul-donutLegend{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;min-width:0}
 .ul-donutItem{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dsw-alias-label-secondary)}
 .ul-donutName{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:260px}
 .ul-donutPct{color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}
@@ -777,6 +777,29 @@ window.__ModuleLoader__.load({
       const [hover, setHover] = React.useState(null) // { i, x, y } in wrap px
       const wrapRef = React.useRef(null)
       const arcsRef = React.useRef({})
+      // Adaptive donut size: measure the card and the (2-col) legend so the
+      // donut fills the vertical space left over — more slices → shorter
+      // donut; few slices → it grows. Recomputed on data change and resize.
+      const cardRef = React.useRef(null)
+      const legendRef = React.useRef(null)
+      const [donutPx, setDonutPx] = React.useState(0)
+      React.useLayoutEffect(() => {
+        const el = cardRef.current
+        if (!el) return undefined
+        const compute = () => {
+          const card = el.getBoundingClientRect()
+          const legendH = legendRef.current ? legendRef.current.getBoundingClientRect().height : 60
+          const byHeight = card.height - 22 - 14 - legendH - 30 // title + gaps + paddings
+          const byWidth = card.width * 0.58
+          const px = Math.max(110, Math.min(320, Math.min(byWidth, byHeight)))
+          setDonutPx((prev) => (Math.abs(prev - px) > 2 ? px : prev))
+        }
+        compute()
+        if (typeof ResizeObserver !== 'function') return undefined
+        const ro = new ResizeObserver(compute)
+        ro.observe(el)
+        return () => ro.disconnect()
+      }, [state.data])
       // Entrance sweep. Trigger key = the fetched data reference (state.data):
       // hovers re-render with the same reference and never replay; a refetch
       // arrives as a new reference and replays. Each arc's dasharray grows
@@ -830,10 +853,10 @@ window.__ModuleLoader__.load({
         return { i, x: e.clientX - r.left, y: e.clientY - r.top }
       }
       const hs = hover && slices[hover.i] ? slices[hover.i] : null
-      return h('section', { className: 'ul-chartCard' },
+      return h('section', { className: 'ul-chartCard', ref: cardRef },
         h('div', { className: 'ul-secTitle' }, `${t('donutTitle')}${rangeSuffix}`),
         h('div', { className: 'ul-donutRow' },
-          h('div', { className: 'ul-donutWrap', ref: wrapRef },
+          h('div', { className: 'ul-donutWrap', ref: wrapRef, style: donutPx > 0 ? { width: donutPx } : undefined },
             h('svg', {
               viewBox: '0 0 132 132', role: 'img',
               style: { width: '100%', height: 'auto', display: 'block' },
@@ -866,7 +889,7 @@ window.__ModuleLoader__.load({
                 h('div', { className: 'ul-tipRow' },
                   `${fmtTok(hs.tokens)} tokens · ${((hs.tokens / sum) * 100).toFixed(1)}%`))
               : null),
-          h('div', { className: 'ul-donutLegend' },
+          h('div', { className: 'ul-donutLegend', ref: legendRef },
             slices.map((s) => h('div', { key: s.key, className: 'ul-donutItem' },
               h('span', { className: 'ul-swatch', style: { background: s.color } }),
               h('span', { className: 'ul-donutName' }, s.name),
