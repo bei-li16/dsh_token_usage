@@ -227,17 +227,17 @@ window.__ModuleLoader__.load({
 .ul-donutName{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:260px}
 .ul-donutPct{color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}
 .ul-table{display:grid;align-items:center;gap:4px 12px;font-size:12px}
-.ul-toolHead,.ul-toolRow{grid-template-columns:minmax(120px,1fr) minmax(140px,2fr) 80px 90px}
+.ul-toolHead,.ul-toolRow{grid-template-columns:minmax(80px,1.2fr) minmax(90px,1.6fr) 60px 70px}
 .ul-toolHead{color:var(--dsw-alias-label-tertiary);border-bottom:1px solid var(--dsw-alias-border-l2);padding-bottom:6px}
 .ul-toolRow{padding:5px 0;border-bottom:1px solid color-mix(in srgb,var(--dsw-alias-border-l2) 50%,transparent);color:var(--dsw-alias-label-secondary)}
 .ul-cellName{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-primary)}
 .ul-cellNum{font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:8px;justify-content:flex-end}
 .ul-barWrap{flex:1;height:6px;border-radius:3px;background:var(--dsw-alias-bg-layer-1);overflow:hidden}
 .ul-bar{display:block;height:100%;border-radius:3px;background:color-mix(in srgb,var(--dsw-tone-1) 70%,transparent)}
-.ul-sessHead,.ul-sessRow{grid-template-columns:minmax(140px,2fr) 70px minmax(130px,1.2fr) 70px 80px}
+.ul-sessHead,.ul-sessRow{grid-template-columns:minmax(96px,1.6fr) 52px minmax(88px,1fr) 46px 62px}
 .ul-sessHead{color:var(--dsw-alias-label-tertiary);border-bottom:1px solid var(--dsw-alias-border-l2);padding-bottom:6px}
 .ul-sessRow{padding:5px 0;border-bottom:1px solid color-mix(in srgb,var(--dsw-alias-border-l2) 50%,transparent);color:var(--dsw-alias-label-secondary)}
-.ul-cellDim{color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}
+.ul-cellDim{color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ul-cellNum2{font-variant-numeric:tabular-nums;text-align:right}
 .ul-session{display:flex;flex-direction:column;gap:18px;color:var(--dsw-alias-label-primary);font:inherit;padding:8px 0}
 .ul-recHead,.ul-recRow{grid-template-columns:90px minmax(100px,1.4fr) 70px 70px 70px 70px}
@@ -252,7 +252,7 @@ window.__ModuleLoader__.load({
 .ul-foldHead:hover{background:var(--dsw-alias-interactive-bg-hover)}
 .ul-chev{color:var(--dsw-alias-label-tertiary);transition:transform .15s ease;display:inline-flex}
 .ul-chevOpen{transform:rotate(90deg)}
-.ul-foldBody{padding:0 14px 12px;max-height:290px;overflow-y:auto}
+.ul-foldBody{padding:0 14px 12px;max-height:290px;overflow-y:auto;overflow-x:hidden}
 `
 
     // ── shared bits ────────────────────────────────────────────────────────
