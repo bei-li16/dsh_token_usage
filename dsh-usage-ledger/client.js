@@ -534,53 +534,103 @@ window.__ModuleLoader__.load({
     }
 
     // ── 52-week heatmap (/heatmap) ─────────────────────────────────────────
-    // GitHub-style grid: rows = weekday (Monday on top), columns = weeks.
-    // The first day snaps to its own week row, future cells are not drawn,
-    // and month labels sit under the grid where a column's first day enters
-    // a new month. Mode segment: day tokens / week sums / running total.
+    // GitHub-style FULL-RECTANGLE grid: rows = weekday (Monday on top, labeled
+    // in a left gutter), columns = weeks; every cell of the rectangle renders
+    // — out-of-range and future days as level-0 — so the grid is always a
+    // clean slab with no ragged holes. Geometry is measured: a ResizeObserver
+    // sizes square cells to the container width (no fixed natural width).
+    // Mode segment: day tokens / week sums / running total. The geometry core
+    // (heatGeometry/heatRowOf/heatMonthLabels) is mirrored verbatim in
+    // src/client/heatgeo.check.mjs with node assertions.
     const HEAT_MODES = [
       { id: 'day', label: 'hmDay' },
       { id: 'week', label: 'hmWeek' },
       { id: 'cum', label: 'hmCum' },
     ]
+    const HEAT_GUTTER = 26
+    const HEAT_GAP = 3
+    const HEAT_LABEL_H = 16
+    const HEAT_DAY_MS = 86400000
+    /** Monday-top rows: Mon=0 … Sun=6. */
+    const heatRowOf = (ms) => (new Date(ms).getDay() + 6) % 7
+    const heatDayMs = (k) => new Date(`${k}T00:00:00`).getTime()
+    /** Grid geometry for [firstDay, today] padded to whole weeks. */
+    function heatGeometry(firstDay, todayDay, availW) {
+      const firstMs = heatDayMs(firstDay)
+      const todayMs = heatDayMs(todayDay)
+      const weekStartMs = firstMs - heatRowOf(firstMs) * HEAT_DAY_MS // Monday of column 0
+      const weekEndMs = todayMs + (6 - heatRowOf(todayMs)) * HEAT_DAY_MS // Sunday of the current week
+      const totalDays = Math.round((weekEndMs - weekStartMs) / HEAT_DAY_MS) + 1
+      const cols = Math.ceil(totalDays / 7)
+      const step = Math.max(6, Math.floor(Math.max(0, availW) / cols))
+      const cell = Math.max(4, step - HEAT_GAP)
+      const width = HEAT_GUTTER + cols * step
+      const height = 7 * step + HEAT_LABEL_H
+      return { weekStartMs, weekEndMs, cols, step, cell, width, height }
+    }
+    /** Month labels at each column whose Monday enters a new month; dropped
+     *  when closer than 30px to the previous label or past the right edge. */
+    function heatMonthLabels(geo) {
+      const labels = []
+      let prevMonth = -1; let lastX = -Infinity
+      for (let col = 0; col < geo.cols; col++) {
+        const dt = new Date(geo.weekStartMs + col * 7 * HEAT_DAY_MS)
+        const m = dt.getMonth()
+        if (m === prevMonth) continue
+        prevMonth = m
+        const x = HEAT_GUTTER + col * geo.step
+        if ((col !== 0 && x - lastX < 30) || x > geo.width - 24) continue
+        lastX = x
+        labels.push({ x, text: dt.toLocaleDateString(undefined, { month: 'short' }) })
+      }
+      return labels
+    }
     function HeatmapSection({ tick }) {
       const state = useApi('heatmap', { weeks: 52 }, [tick])
-      const [hover, setHover] = React.useState(null) // hovered cell index
+      const [hover, setHover] = React.useState(null) // hovered data cell
       const [mode, setMode] = React.useState('day')
+      const wrapRef = React.useRef(null)
+      const [wrapW, setWrapW] = React.useState(0)
+      React.useEffect(() => {
+        const el = wrapRef.current
+        if (!el || typeof ResizeObserver !== 'function') return undefined
+        const ro = new ResizeObserver((entries) => {
+          const w = entries[0]?.contentRect?.width
+          if (typeof w === 'number' && w > 0) setWrapW(Math.floor(w))
+        })
+        ro.observe(el)
+        return () => ro.disconnect()
+      }, [])
       if (state.loading || state.error) return h(LoadState, { state })
       const data = state.data
       if (!data || !data.days || data.days.length === 0) return h('div', { className: 'ul-note' }, t('empty'))
-      const cell = 12; const gap = 3; const step = cell + gap
-      const gridH = 7 * step; const labelH = 14
-      const H = gridH + labelH
       const today = dayKeyOf(new Date())
-      const dayMs = (k) => new Date(`${k}T00:00:00`).getTime()
-      // Monday-top rows: Mon=0 … Sun=6.
-      const rowOf = (ms) => (new Date(ms).getDay() + 6) % 7
-      const firstMs = dayMs(data.days[0].day)
-      if (Number.isNaN(firstMs)) return h('div', { className: 'ul-note' }, t('empty'))
-      const weekStartMs = firstMs - rowOf(firstMs) * 86400000 // Monday of column 0
+      if (Number.isNaN(heatDayMs(data.days[0].day))) return h('div', { className: 'ul-note' }, t('empty'))
+      const geo = heatGeometry(data.days[0].day, today, wrapW === 0 ? 0 : wrapW - HEAT_GUTTER)
+      // Full rectangle: one cell per (col,row) in [weekStart, weekEnd]; days
+      // outside the API window or in the future carry d:null (level-0, no tip).
+      const byDay = new Map(data.days.map((d) => [d.day, d]))
       const cells = []
-      for (const d of data.days) {
-        if (d.day > today) continue // future cells are not drawn
-        const ms = dayMs(d.day)
-        if (Number.isNaN(ms)) continue
-        // day-granularity round (DST-safe) THEN floor to whole weeks:
-        // a plain round on weeks would push Wed–Sun one column right.
-        cells.push({ d, row: rowOf(ms), col: Math.floor(Math.round((ms - weekStartMs) / 86400000) / 7) })
+      for (let col = 0; col < geo.cols; col++) {
+        for (let row = 0; row < 7; row++) {
+          const ms = geo.weekStartMs + (col * 7 + row) * HEAT_DAY_MS
+          const day = dayKeyOf(new Date(ms))
+          cells.push({ day, col, row, ms, d: byDay.get(day) ?? null })
+        }
       }
-      if (cells.length === 0) return h('div', { className: 'ul-note' }, t('empty'))
-      const cols = cells[cells.length - 1].col + 1
-      const W = cols * step
-      // display value per mode: raw day tokens / week sum / running total
+      // Mode values from REAL data days only: week sums per column, running total.
       const weekSum = []
+      const cumByDay = new Map()
       let run = 0
-      for (const c of cells) {
-        weekSum[c.col] = (weekSum[c.col] || 0) + c.d.tokens
-        run += c.d.tokens
-        c.cum = run
+      for (const d of data.days) {
+        const ms = heatDayMs(d.day)
+        if (Number.isNaN(ms) || ms < geo.weekStartMs || ms > geo.weekEndMs) continue
+        const col = Math.floor((ms - geo.weekStartMs) / HEAT_DAY_MS / 7)
+        weekSum[col] = (weekSum[col] || 0) + d.tokens
+        run += d.tokens
+        cumByDay.set(d.day, run)
       }
-      const valueOf = (c) => (mode === 'week' ? weekSum[c.col] : mode === 'cum' ? c.cum : c.d.tokens)
+      const valueOf = (c) => (c.d === null ? 0 : mode === 'week' ? (weekSum[c.col] ?? 0) : mode === 'cum' ? (cumByDay.get(c.day) ?? 0) : c.d.tokens)
       let max = 0
       for (const c of cells) { const v = valueOf(c); if (v > max) max = v }
       if (max <= 0) max = 1
@@ -589,32 +639,19 @@ window.__ModuleLoader__.load({
         const r = v / max
         return r < 0.25 ? 1 : r < 0.5 ? 2 : r < 0.75 ? 3 : 4
       }
-      // Month labels: at each column whose first rendered day enters a new
-      // month; zh → "11月", en → "Nov" (ambient locale, fmtDayLong precedent).
-      // Labels closer than 30px to the previous one or past the right edge
-      // are dropped so the row never overlaps itself.
-      const monthLabels = []
-      let prevMonth = -1; let prevCol = -1; let lastLabelX = -Infinity
-      for (const c of cells) {
-        if (c.col === prevCol) continue // cells are day-ordered → first of column
-        prevCol = c.col
-        const dt = new Date(dayMs(c.d.day))
-        const m = dt.getMonth()
-        if (m === prevMonth) continue
-        prevMonth = m
-        const x = c.col * step
-        if ((c.col !== 0 && x - lastLabelX < 30) || x > W - 24) continue
-        lastLabelX = x
-        monthLabels.push({ x, text: dt.toLocaleDateString(undefined, { month: 'short' }) })
+      const monthLabels = heatMonthLabels(geo)
+      const weekdayLabels = []
+      for (let row = 0; row < 7; row++) {
+        weekdayLabels.push(new Date(geo.weekStartMs + row * HEAT_DAY_MS).toLocaleDateString(undefined, { weekday: 'short' }))
       }
-      const hd = hover !== null && hover < cells.length ? cells[hover] : null
+      const gridH = 7 * geo.step
       let tipStyle = null
-      if (hd) {
-        const fx = ((hd.col * step + cell / 2) / W) * 100
-        const fy = ((hd.row * step) / H) * 100
+      if (hover) {
+        const fx = ((HEAT_GUTTER + hover.col * geo.step + geo.cell / 2) / geo.width) * 100
+        const fy = ((hover.row * geo.step) / geo.height) * 100
         // flip: right edge → card grows left; top rows → card drops below cell
         const tx = fx > 82 ? 'translateX(calc(-100% + 10px))' : fx < 10 ? 'translateX(-10px)' : 'translateX(-50%)'
-        const ty = hd.row >= 2 ? 'translateY(calc(-100% - 8px))' : `translateY(${cell + 8}px)`
+        const ty = hover.row >= 2 ? 'translateY(calc(-100% - 8px))' : `translateY(${geo.cell + 8}px)`
         tipStyle = { left: `${fx}%`, top: `${fy}%`, transform: `${tx} ${ty}` }
       }
       return h('section', { className: 'ul-sec' },
@@ -626,25 +663,31 @@ window.__ModuleLoader__.load({
               className: m.id === mode ? 'ul-segBtn ul-segActive' : 'ul-segBtn',
               onClick: () => setMode(m.id),
             }, t(m.label))))),
-        h('div', { className: 'ul-heatWrap' },
-          h('div', { className: 'ul-heatInner', style: { maxWidth: `${W}px` } },
-            h('svg', { className: 'ul-heat', viewBox: `0 0 ${W} ${H}`, role: 'img' },
-              cells.map((c, i) => h('rect', {
-                key: c.d.day,
-                x: c.col * step, y: c.row * step,
-                width: cell, height: cell, rx: 3,
+        h('div', { className: 'ul-heatWrap', ref: wrapRef },
+          h('div', { className: 'ul-heatInner', style: { width: `${geo.width}px` } },
+            h('svg', { width: geo.width, height: geo.height, viewBox: `0 0 ${geo.width} ${geo.height}`, role: 'img', style: { display: 'block' } },
+              weekdayLabels.map((w, row) => h('text', {
+                key: `w${row}`, x: 0, y: row * geo.step + geo.cell / 2,
+                fontSize: 9, fill: 'var(--dsw-alias-label-tertiary)', dominantBaseline: 'central',
+              }, w)),
+              cells.map((c) => h('rect', {
+                key: c.day,
+                x: HEAT_GUTTER + c.col * geo.step, y: c.row * geo.step,
+                width: geo.cell, height: geo.cell, rx: 3,
                 class: `ul-heat${level(valueOf(c))}`,
-                onMouseEnter: () => setHover(i),
-                onMouseLeave: () => setHover(null),
+                ...(c.d !== null ? {
+                  onMouseEnter: () => setHover(c),
+                  onMouseLeave: () => setHover(null),
+                } : {}),
               })),
               monthLabels.map((ml) => h('text', {
-                key: `m${ml.x}`, x: ml.x, y: gridH + 11,
+                key: `m${ml.x}`, x: ml.x, y: gridH + 12,
                 fontSize: 10, fill: 'var(--dsw-alias-label-tertiary)',
               }, ml.text))),
-            hd
+            hover
               ? h(ChartTip, { style: tipStyle },
-                h('div', { className: 'ul-tipTitle' }, fmtDayLong(hd.d.day)),
-                h('div', { className: 'ul-tipRow' }, `${fmtTok(hd.d.tokens)} tokens · ${fmtInt(hd.d.requests)} ${t('reqWord')}`))
+                h('div', { className: 'ul-tipTitle' }, fmtDayLong(hover.day)),
+                h('div', { className: 'ul-tipRow' }, `${fmtTok(hover.d.tokens)} tokens · ${fmtInt(hover.d.requests)} ${t('reqWord')}`))
               : null)),
         h('div', { className: 'ul-heatLegend' },
           h('span', null, t('less')),
