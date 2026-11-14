@@ -482,9 +482,9 @@ window.__ModuleLoader__.load({
           ratePath !== ''
             ? [0, 50, 100].map((p) => h('text', { key: `r${p}`, x: W - 2, y: yRate(p) + 3, textAnchor: 'end', fontSize: 9, fill: 'var(--dsw-alias-label-tertiary)' }, `${p}%`))
             : null,
-          // Hover markers: one dot per visible series at the hovered bucket
-          // (+ the rate line) — the "选中曲线有点" affordance.
-          hi !== null ? series.map((s) => h('circle', {
+          // Hover markers: one dot per series WITH VALUE at the hovered bucket
+          // (zero-value dots would pile on the baseline; zero rows are noise).
+          hi !== null ? series.filter((s) => (s.values[hi] ?? 0) > 0).map((s) => h('circle', {
             key: `d${s.key}`, cx: x(hi), cy: y(s.values[hi] ?? 0), r: 3.5,
             fill: s.color, stroke: 'var(--dsw-alias-bg-base)', strokeWidth: 1.5, vectorEffect: 'non-scaling-stroke',
           })) : null,
@@ -510,7 +510,7 @@ window.__ModuleLoader__.load({
           },
             h('div', { className: 'ul-tipTitle' },
               `${labelOf(keys[hi])} - ${fmtTok(series.reduce((a, s) => a + (s.values[hi] || 0), 0))} tokens`),
-            series.map((s) => h(TipRow, { key: s.key, color: s.color },
+            series.filter((s) => (s.values[hi] ?? 0) > 0).map((s) => h(TipRow, { key: s.key, color: s.color },
               h('span', { className: 'ul-tipName' }, s.name ?? s.key),
               h('span', { className: 'ul-tipVal' }, `${fmtTok(s.values[hi])} tokens`))),
             rate && typeof rate.values[hi] === 'number'
