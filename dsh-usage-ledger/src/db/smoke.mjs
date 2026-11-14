@@ -138,7 +138,9 @@ async function main() {
   assert.equal(day5Bucket.tokens, 60, 'daily day5 tokens')
   assert.deepEqual(day5Bucket.groups, { 'openai/gpt-y': 60 }, 'daily day5 groups')
   const midBucket = daily.buckets.find((b) => b.key === dayMinus(today, 2))
-  assert.deepEqual(midBucket, { key: dayMinus(today, 2), tokens: 0, requests: 0, failures: 0, turns: 0, groups: {} }, 'daily 中间天空桶')
+  assert.deepEqual(midBucket, { key: dayMinus(today, 2), tokens: 0, requests: 0, failures: 0, turns: 0, cacheHitRate: null, groups: {} }, 'daily 中间天空桶')
+  // cacheHitRate（additive）：今天桶有 prompt 侧数据应给出数值
+  assert.equal(typeof todayBucket.cacheHitRate, 'number', 'daily today cacheHitRate 存在')
   assert.deepEqual(
     daily.groupTotals.map((g) => g.key),
     ['openai/gpt-x', 'openai/gpt-y', '(unknown)', 'anthropic/claude'],

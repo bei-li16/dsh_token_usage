@@ -122,6 +122,45 @@ function clampInt(value, fallback, min, max) {
   return Math.min(max, Math.max(min, Math.round(n)))
 }
 
+/** ref `provider/model` 拆分（允许空侧）。 */
+function splitModelRef(ref) {
+  const i = ref.indexOf('/')
+  return i > 0 ? { provider: ref.slice(0, i), model: ref.slice(i + 1) } : { provider: '', model: ref }
+}
+
+/** 把 day_model 的路由引用解析为模型选择器的显示名（dsh-token-total 的
+ *  resolveModelNames 同款模式：resolveModelInfo 主查 + listModels 兜底 +
+ *  并发 4 + 共享 2s deadline；元数据是附属面，任何失败都回退原始引用）。 */
+async function resolveGroupNames(refs, llm) {
+  const names = {}
+  if (!llm) return names
+  const list = [...new Set(refs)].filter((r) => typeof r === 'string' && r !== '' && r !== '(unknown)')
+  if (list.length === 0) return names
+  const deadline = Date.now() + 2000
+  const withTimeout = (p) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), Math.max(1, deadline - Date.now())))])
+  let cursor = 0
+  await Promise.all(Array.from({ length: Math.min(4, list.length) }, async () => {
+    while (cursor < list.length && Date.now() < deadline) {
+      const ref = list[cursor++]
+      const { provider, model } = splitModelRef(ref)
+      try {
+        if (typeof llm.resolveModelInfo === 'function') {
+          const info = await withTimeout(Promise.resolve().then(() => llm.resolveModelInfo(provider, model)))
+          const name = info?.name?.trim()
+          if (name) { names[ref] = name; continue }
+        }
+        if (typeof llm.listModels === 'function') {
+          const cat = await withTimeout(Promise.resolve().then(() => llm.listModels(provider)))
+          const hit = Array.isArray(cat) ? cat.find((m) => m?.id === model) : undefined
+          const name = hit?.name?.trim()
+          if (name) names[ref] = name
+        }
+      } catch { /* 单个引用失败不影响其余 */ }
+    }
+  }))
+  return names
+}
+
 /**
  * 构建 /usage-ledger/api 前缀路由（webServer.register 的形状）。
  * @param {object} deps
@@ -171,7 +210,16 @@ export function buildLedgerRoute(deps) {
         }
         q.granularity = body.granularity
       }
-      return store.daily(q)
+      const result = await store.daily(q)
+      // 模型显示名解析（additive groupNames）：只在 model 分组且有分组键时做。
+      if (q.group === 'model' || (q.group === undefined && result.group === 'model')) {
+        const keys = new Set()
+        for (const g of result.groupTotals ?? []) keys.add(g.key)
+        for (const b of result.buckets ?? []) for (const k of Object.keys(b.groups ?? {})) keys.add(k)
+        const groupNames = await resolveGroupNames([...keys], deps.llm ? deps.llm() : undefined)
+        if (Object.keys(groupNames).length > 0) result.groupNames = groupNames
+      }
+      return result
     },
 
     heatmap: async (body) => store.heatmap({ weeks: clampInt(body.weeks, defaultHeatmapWeeks, 1, 260) }),

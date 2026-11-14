@@ -421,6 +421,8 @@ export function emptySessionIndexRow(id) {
  * @property {number} failures
  * @property {number} turns
  * @property {Record<string, number>} groups  group-key → tokens (empty without group)
+ * @property {number|null} cacheHitRate  bucket 的缓存命中率 0..100（cacheRead/(input+read+write)），
+ *                                       无 prompt 侧数据时为 null；additive 字段。
  *
  * @typedef {Object} DailyResponse
  * @property {string} from
@@ -429,6 +431,9 @@ export function emptySessionIndexRow(id) {
  * @property {'model'|'kind'|'tool'|null} group
  * @property {DailyBucket[]} buckets
  * @property {{key: string, tokens: number, requests: number, percent: number}[]} groupTotals  desc by tokens
+ * @property {Record<string, string>} [groupNames]  additive：group='model' 时把
+ *          `provider/model` 路由引用解析为模型选择器里的人类可读名（llm 服务），
+ *          解析不到的键缺席，客户端回退显示原始引用。
  * @property {boolean} degraded       hour granularity in KV-only mode returns
  *                                    day buckets with degraded:true
  */

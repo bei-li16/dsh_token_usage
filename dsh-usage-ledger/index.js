@@ -11,7 +11,7 @@
  * surface only through /usage-ledger/api/status.
  */
 
-import { createLedgerStore } from './src/db/store.js'
+import { createLedgerStore, STORE_VERSION } from './src/db/store.js'
 import { LedgerCollector } from './src/collector/collector.js'
 import { buildLedgerRoute } from './src/routes/routes.js'
 
@@ -65,7 +65,14 @@ const STORE_KEY = '__dshUsageLedgerStoreV2'
 function sharedStore(ctx, config) {
   const g = /** @type {Record<string, unknown>} */ (/** @type {unknown} */ (globalThis))
   const existing = g[STORE_KEY]
-  if (existing) return /** @type {import('./src/contract.js').LedgerStore} */ (existing)
+  if (existing) {
+    if (existing.storeVersion === STORE_VERSION) return /** @type {import('./src/contract.js').LedgerStore} */ (existing)
+    // The cached instance predates the current store code generation: dispose
+    // it (closes the domain + SQLite handles) and rebuild, so a plugin toggle
+    // upgrades the store without an app restart. dispose() is async; the new
+    // store's KV open retries 'already-open' across the close window.
+    try { existing.dispose?.() } catch { /* best-effort teardown of the old generation */ }
+  }
   // createLedgerStore never throws on an unavailable backend — it degrades
   // internally to KV-only — so caching the instance here is safe.
   const created = createLedgerStore({
@@ -146,6 +153,9 @@ export function apply(ctx, rawConfig = {}) {
       isRebuilding,
       resetAndRescan,
       config: { heatmapWeeks: config.heatmapWeeks, retentionDays: config.retentionDays },
+      // Model display-name metadata for /daily groupNames (optional service;
+      // probed with ctx.get because a traced Context throws on absent reads).
+      llm: () => ctx.get('llm'),
     })
     const dispose = ctx.webServer.register(route)
     return dispose

@@ -373,7 +373,7 @@ window.__ModuleLoader__.load({
       { id: '90', label: 'r90', days: 90, granularity: 'day' },
     ]
 
-    function LineChart({ keys, granularity, degraded, series, animKey }) {
+    function LineChart({ keys, granularity, degraded, series, animKey, rate }) {
       const W = 720; const H = 240; const padL = 46; const padR = 24; const padT = 12; const padB = 22
       const n = keys.length
       const [hover, setHover] = React.useState(null) // hovered bucket index
@@ -412,6 +412,9 @@ window.__ModuleLoader__.load({
       if (max <= 0) max = 1
       const x = (i) => (n === 1 ? padL + (W - padL - padR) / 2 : padL + (i * (W - padL - padR)) / (n - 1))
       const y = (v) => padT + (H - padT - padB) * (1 - v / max)
+      // Cache hit-rate overlay: fixed 0..100 scale on a secondary right axis
+      // (token-total's hourly trend shows the same overlay line).
+      const yRate = (v) => padT + (H - padT - padB) * (1 - v / 100)
       // KV-degraded responses return day buckets even for the hourly range.
       const isHour = granularity === 'hour' && !degraded
       const labelOf = (key) => (isHour ? `${key.slice(-2)}:00` : key.slice(5) || key)
@@ -440,6 +443,16 @@ window.__ModuleLoader__.load({
       }
       const hi = hover !== null && hover < n ? hover : null
       const tipFrac = hi !== null ? x(hi) / W : 0
+      // Hit-rate overlay path: straight dashed polyline through known buckets
+      // (gaps where the bucket has no prompt tokens stay undrawn).
+      let ratePath = ''
+      if (rate) {
+        for (let i = 0; i < n; i++) {
+          const v = rate.values[i]
+          if (typeof v !== 'number') continue
+          ratePath += `${ratePath === '' || typeof rate.values[i - 1] !== 'number' ? 'M' : 'L'}${rnd(x(i))},${rnd(yRate(v))}`
+        }
+      }
       return h('div', { className: 'ul-chartWrap' },
         h('svg', {
           className: 'ul-chart', viewBox: `0 0 ${W} ${H}`, role: 'img',
@@ -463,6 +476,21 @@ window.__ModuleLoader__.load({
                 ref: (el) => { if (el) pathsRef.current[s.key] = el; else delete pathsRef.current[s.key] },
               }))
           }),
+          ratePath !== ''
+            ? h('path', { d: ratePath, fill: 'none', stroke: 'var(--dsw-alias-label-tertiary)', strokeWidth: 1.5, strokeDasharray: '5 4', vectorEffect: 'non-scaling-stroke' })
+            : null,
+          ratePath !== ''
+            ? [0, 50, 100].map((p) => h('text', { key: `r${p}`, x: W - 2, y: yRate(p) + 3, textAnchor: 'end', fontSize: 9, fill: 'var(--dsw-alias-label-tertiary)' }, `${p}%`))
+            : null,
+          // Hover markers: one dot per visible series at the hovered bucket
+          // (+ the rate line) — the "选中曲线有点" affordance.
+          hi !== null ? series.map((s) => h('circle', {
+            key: `d${s.key}`, cx: x(hi), cy: y(s.values[hi] ?? 0), r: 3.5,
+            fill: s.color, stroke: 'var(--dsw-alias-bg-base)', strokeWidth: 1.5, vectorEffect: 'non-scaling-stroke',
+          })) : null,
+          hi !== null && rate && typeof rate.values[hi] === 'number'
+            ? h('circle', { cx: x(hi), cy: yRate(rate.values[hi]), r: 3, fill: 'var(--dsw-alias-label-tertiary)', stroke: 'var(--dsw-alias-bg-base)', strokeWidth: 1 })
+            : null,
           tickIdx.map((i) => {
             // End labels anchor inward so they never overflow the viewBox
             // (was: middle-anchored last label clipped at the right edge).
@@ -483,8 +511,13 @@ window.__ModuleLoader__.load({
             h('div', { className: 'ul-tipTitle' },
               `${labelOf(keys[hi])} - ${fmtTok(series.reduce((a, s) => a + (s.values[hi] || 0), 0))} tokens`),
             series.map((s) => h(TipRow, { key: s.key, color: s.color },
-              h('span', { className: 'ul-tipName' }, s.key),
-              h('span', { className: 'ul-tipVal' }, `${fmtTok(s.values[hi])} tokens`))))
+              h('span', { className: 'ul-tipName' }, s.name ?? s.key),
+              h('span', { className: 'ul-tipVal' }, `${fmtTok(s.values[hi])} tokens`))),
+            rate && typeof rate.values[hi] === 'number'
+              ? h('div', { className: 'ul-tipRow' },
+                h('span', { className: 'ul-tipName' }, rate.label),
+                h('span', { className: 'ul-tipVal' }, fmtPct(rate.values[hi])))
+              : null)
           : null)
     }
 
@@ -498,18 +531,23 @@ window.__ModuleLoader__.load({
       const state = useApi('daily', body, [rangeId, tick])
       const data = state.data
       const keys = data ? data.buckets.map((b) => b.key) : []
-      const totals = data ? data.groupTotals : []
+      // Route refs → selector display names (groupNames, host-resolved); raw ref is the fallback.
+      const names = data?.groupNames ?? {}
+      const nameOf = (k) => names[k] ?? k
+      // Models with zero tokens in the range are hidden entirely (no legend noise).
+      const totals = data ? data.groupTotals.filter((g) => g.tokens > 0) : []
       const top = totals.slice(0, 6)
       const rest = totals.slice(6)
       const restTokens = rest.reduce((a, g) => a + g.tokens, 0)
       // top-6 series + a grey "other" rollup so line totals match the cards.
-      const legendItems = top.map((g, gi) => ({ key: g.key, color: PALETTE[gi % PALETTE.length] }))
-      if (restTokens > 0) legendItems.push({ key: t('other'), color: PALETTE[6] })
+      const legendItems = top.map((g, gi) => ({ key: g.key, name: nameOf(g.key), color: PALETTE[gi % PALETTE.length] }))
+      if (restTokens > 0) legendItems.push({ key: t('other'), name: t('other'), color: PALETTE[6] })
       const valOf = (b, k) => (b.groups && typeof b.groups[k] === 'number' ? b.groups[k] : 0) // defensive zero-fill
       const series = data
         ? legendItems
           .map((it, li) => ({
             key: it.key,
+            name: it.name,
             color: it.color,
             values: li === legendItems.length - 1 && restTokens > 0
               ? data.buckets.map((b) => rest.reduce((a, g) => a + valOf(b, g.key), 0))
@@ -517,6 +555,9 @@ window.__ModuleLoader__.load({
           }))
           .filter((s) => !hidden[s.key])
         : []
+      // Cache hit-rate overlay (per bucket; null where no prompt tokens).
+      const rateValues = data ? data.buckets.map((b) => (typeof b.cacheHitRate === 'number' ? b.cacheHitRate : null)) : []
+      const rate = rateValues.some((v) => typeof v === 'number') ? { values: rateValues, label: t('cacheHit') } : null
       return h('section', { className: 'ul-chartCard' },
         h('div', { className: 'ul-cardHead' },
           h('div', { className: 'ul-secTitle' }, t('dailyTitle')),
@@ -531,7 +572,7 @@ window.__ModuleLoader__.load({
           : !data || totals.length === 0
             ? h('div', { className: 'ul-note' }, t('empty'))
             : h(React.Fragment, null,
-              h(LineChart, { keys, granularity: range.granularity, degraded: !!data.degraded, series, animKey: data }),
+              h(LineChart, { keys, granularity: range.granularity, degraded: !!data.degraded, series, animKey: data, rate }),
               h('div', { className: 'ul-legend' },
                 legendItems.map((it) => h('button', {
                   key: it.key, type: 'button',
@@ -539,7 +580,7 @@ window.__ModuleLoader__.load({
                   onClick: () => setHidden((prev) => ({ ...prev, [it.key]: !prev[it.key] })),
                 },
                   h('span', { className: 'ul-swatch', style: { background: it.color } }),
-                  it.key)))))
+                  it.name)))))
     }
 
     // ── 52-week heatmap (/heatmap) ─────────────────────────────────────────
@@ -758,13 +799,14 @@ window.__ModuleLoader__.load({
       }, [state.data])
       if (state.loading || state.error) return h(LoadState, { state })
       const data = state.data
-      const totals = data ? data.groupTotals : []
+      const totals = data ? data.groupTotals.filter((g) => g.tokens > 0) : []
       if (!data || totals.length === 0) return h('div', { className: 'ul-note' }, t('empty'))
+      const names = data.groupNames ?? {}
       const top = totals.slice(0, 5)
       const rest = totals.slice(5)
       const restTokens = rest.reduce((a, g) => a + g.tokens, 0)
-      const slices = top.map((g, i) => ({ key: g.key, tokens: g.tokens, color: PALETTE[i % PALETTE.length] }))
-      if (restTokens > 0) slices.push({ key: t('other'), tokens: restTokens, color: PALETTE[6] })
+      const slices = top.map((g, i) => ({ key: g.key, name: names[g.key] ?? g.key, tokens: g.tokens, color: PALETTE[i % PALETTE.length] }))
+      if (restTokens > 0) slices.push({ key: t('other'), name: t('other'), tokens: restTokens, color: PALETTE[6] })
       const sum = slices.reduce((a, s) => a + s.tokens, 0) || 1
       const R = DONUT_R; const C = DONUT_C
       let acc = 0
@@ -806,14 +848,14 @@ window.__ModuleLoader__.load({
                 },
               },
                 h(TipRow, { color: hs.color },
-                  h('span', { className: 'ul-tipName ul-tipStrong' }, hs.key)),
+                  h('span', { className: 'ul-tipName ul-tipStrong' }, hs.name)),
                 h('div', { className: 'ul-tipRow' },
                   `${fmtTok(hs.tokens)} tokens · ${((hs.tokens / sum) * 100).toFixed(1)}%`))
               : null),
           h('div', { className: 'ul-donutLegend' },
             slices.map((s) => h('div', { key: s.key, className: 'ul-donutItem' },
               h('span', { className: 'ul-swatch', style: { background: s.color } }),
-              h('span', { className: 'ul-donutName' }, s.key),
+              h('span', { className: 'ul-donutName' }, s.name),
               h('span', { className: 'ul-donutPct' }, `${((s.tokens / sum) * 100).toFixed(1)}%`))))))
     }
 

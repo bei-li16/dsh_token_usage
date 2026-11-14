@@ -173,20 +173,32 @@ export const DOMAIN_SPEC = {
 /**
  * 打开 KV 后端。失败（already-open / invalid-record / 后端不可用）直接 throw，
  * 由 store 降级为无 rollup 模式或纯 SQLite 模式。
+ * 'already-open' 做有限重试：旧代际 store 的 dispose 与 domain.close() 是异步的，
+ * 新旧交替窗口内 open 会短暂撞名。
  * @returns {Promise<{domain: object, days: object, dayModel: object, dayKind: object,
  *   dayTool: object, sessions: object, globalHandle: object}>}
  */
 export async function openKvBackend(storageDomain) {
-  const domain = await storageDomain.open(DOMAIN_SPEC)
-  return {
-    domain,
-    days: domain.table('days'),
-    dayModel: domain.table('day_model'),
-    dayKind: domain.table('day_kind'),
-    dayTool: domain.table('day_tool'),
-    sessions: domain.table('sessions'),
-    globalHandle: domain.global,
+  let lastErr
+  for (let attempt = 0; attempt < 6; attempt++) {
+    try {
+      const domain = await storageDomain.open(DOMAIN_SPEC)
+      return {
+        domain,
+        days: domain.table('days'),
+        dayModel: domain.table('day_model'),
+        dayKind: domain.table('day_kind'),
+        dayTool: domain.table('day_tool'),
+        sessions: domain.table('sessions'),
+        globalHandle: domain.global,
+      }
+    } catch (err) {
+      lastErr = err
+      if (!/already open/.test(String(err?.message ?? err))) throw err
+      await new Promise((resolve) => setTimeout(resolve, 400))
+    }
   }
+  throw lastErr
 }
 
 /** provider/model → day_model 分组引用：双空时 '(unknown)'，否则允许空侧。 */

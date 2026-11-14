@@ -134,7 +134,10 @@ export function openFactsBackend(path) {
   const hourBaseStmt = db.prepare(`
     SELECT hour,
       SUM(computed_total) AS tokens, COUNT(*) AS requests,
-      SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) AS failures
+      SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) AS failures,
+      SUM(input_tokens) AS inputTokens,
+      SUM(cache_read_tokens) AS cacheReadTokens,
+      SUM(cache_write_tokens) AS cacheWriteTokens
     FROM request WHERE day >= ? AND day <= ? GROUP BY hour
   `)
   const hourToolStmt = db.prepare(`

@@ -40,6 +40,9 @@ const DEFAULT_HEATMAP_WEEKS = 52
 const RECENT_FACTS_CAP = 10000
 /** sessionDetail 明细上限（contract 钉死 cap 500）。 */
 const SESSION_RECORDS_CAP = 500
+/** Store 代码代际：index.js 的全局单例发现代际不符时 dispose 旧实例重建
+ *  （插件 toggle 即可升级 store，无需重启应用）。 */
+export const STORE_VERSION = 2
 
 /** 错误对象 → 单行安全文本（status.backendError 用）。 */
 function sanitizeError(err) {
@@ -292,6 +295,7 @@ export function createLedgerStore({ storageDomain, config, logger }) {
 
   // ══ 公共面（contract.js LedgerStore）═══════════════════════════════════
   const store = {
+    storeVersion: STORE_VERSION,
     ready: () => readyPromise,
 
     // ── 写入（fire-and-forget，永不 throw）──────────────────────────────
@@ -491,7 +495,7 @@ export function createLedgerStore({ storageDomain, config, logger }) {
       }
       const degraded = granularity === 'hour' && !sqlite
       const days = daysInRange(from, to)
-      const buckets = new Map(days.map((day) => [day, { key: day, tokens: 0, requests: 0, failures: 0, turns: 0, groups: {} }]))
+      const buckets = new Map(days.map((day) => [day, { key: day, tokens: 0, requests: 0, failures: 0, turns: 0, cacheHitRate: null, groups: {} }]))
       if (kv) {
         for (const [, row] of kv.days.entries()) {
           const bucket = buckets.get(row.day)
@@ -500,6 +504,7 @@ export function createLedgerStore({ storageDomain, config, logger }) {
           bucket.requests = row.requests
           bucket.failures = row.failures
           bucket.turns = row.turns
+          bucket.cacheHitRate = cacheHitRateOf(row.inputTokens, row.cacheReadTokens, row.cacheWriteTokens)
         }
         const groupTable = group === 'model' ? kv.dayModel : group === 'kind' ? kv.dayKind : kv.dayTool
         for (const [key, row] of groupTable.entries()) {
@@ -737,7 +742,7 @@ function hourlyDaily(sqlite, from, to, group) {
   for (const day of days) {
     for (let h = 0; h < 24; h += 1) bucketKeys.push(`${day}T${String(h).padStart(2, '0')}`)
   }
-  const buckets = new Map(bucketKeys.map((key) => [key, { key, tokens: 0, requests: 0, failures: 0, turns: 0, groups: {} }]))
+  const buckets = new Map(bucketKeys.map((key) => [key, { key, tokens: 0, requests: 0, failures: 0, turns: 0, cacheHitRate: null, groups: {} }]))
   const agg = sqlite.hourly(from, to)
   for (const row of agg.base) {
     const bucket = buckets.get(row.hour)
@@ -745,6 +750,7 @@ function hourlyDaily(sqlite, from, to, group) {
     bucket.tokens = Number(row.tokens)
     bucket.requests = Number(row.requests)
     bucket.failures = Number(row.failures)
+    bucket.cacheHitRate = cacheHitRateOf(Number(row.inputTokens ?? 0), Number(row.cacheReadTokens ?? 0), Number(row.cacheWriteTokens ?? 0))
   }
   const grouped = group === 'model' ? agg.byModel : group === 'kind' ? agg.byKind : agg.byTool
   for (const row of grouped) {
