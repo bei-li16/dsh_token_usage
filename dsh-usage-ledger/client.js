@@ -245,6 +245,14 @@ window.__ModuleLoader__.load({
 .ul-recRow{padding:4px 0;border-bottom:1px solid color-mix(in srgb,var(--dsw-alias-border-l2) 50%,transparent);color:var(--dsw-alias-label-secondary)}
 .ul-cellBad{color:var(--dsw-alias-state-error-primary,var(--dsw-alias-label-secondary))}
 .ul-toolMini{display:flex;flex-wrap:wrap;gap:8px}
+.ul-foldGrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+@media (max-width:1100px){.ul-foldGrid{grid-template-columns:1fr}}
+.ul-foldCard{display:flex;flex-direction:column;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);min-width:0;overflow:hidden}
+.ul-foldHead{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;cursor:pointer;user-select:none;border-radius:10px}
+.ul-foldHead:hover{background:var(--dsw-alias-interactive-bg-hover)}
+.ul-chev{color:var(--dsw-alias-label-tertiary);transition:transform .15s ease;display:inline-flex}
+.ul-chevOpen{transform:rotate(90deg)}
+.ul-foldBody{padding:0 14px 12px;max-height:290px;overflow-y:auto}
 `
 
     // ── shared bits ────────────────────────────────────────────────────────
@@ -860,15 +868,33 @@ window.__ModuleLoader__.load({
               h('span', { className: 'ul-donutPct' }, `${((s.tokens / sum) * 100).toFixed(1)}%`))))))
     }
 
+    // ── foldable side-by-side cards (tools + sessions) ─────────────────────
+    // Collapsed by default; the table child mounts (and fetches) only on first
+    // expand. Body is capped at ~10 rows and scrolls beyond.
+    function FoldCard({ title, children }) {
+      const [open, setOpen] = React.useState(false)
+      return h('section', { className: 'ul-foldCard' },
+        h('div', {
+          className: 'ul-foldHead', role: 'button', tabIndex: 0,
+          'aria-expanded': open,
+          onClick: () => setOpen((v) => !v),
+          onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen((v) => !v) } },
+        },
+          h('div', { className: 'ul-secTitle' }, title),
+          h('span', { className: open ? 'ul-chev ul-chevOpen' : 'ul-chev', 'aria-hidden': true },
+            h('svg', { width: 12, height: 12, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2.4, strokeLinecap: 'round', strokeLinejoin: 'round' },
+              h('path', { d: 'M9 6l6 6-6 6' })))),
+        open ? h('div', { className: 'ul-foldBody' }, children) : null)
+    }
+
     // ── tool distribution (/tools) ─────────────────────────────────────────
-    function ToolsSection({ tick }) {
+    function ToolsTable({ tick }) {
       const state = useApi('tools', {}, [tick])
       if (state.loading || state.error) return h(LoadState, { state })
       const data = state.data
       const tools = data ? data.tools.slice(0, 12) : []
       if (!data || tools.length === 0) return h('div', { className: 'ul-note' }, t('empty'))
-      return h('section', { className: 'ul-chartCard' },
-        h('div', { className: 'ul-secTitle' }, t('toolsTitle')),
+      return h(React.Fragment, null,
         h('div', { className: 'ul-table ul-toolHead' },
           h('span', null, t('tName')), h('span', null, t('tCalls')),
           h('span', null, t('tFail')), h('span', null, t('tAvg'))),
@@ -887,14 +913,13 @@ window.__ModuleLoader__.load({
 
     // ── sessions table (/sessions, read-only) ──────────────────────────────
     const KIND_LABEL = { main: 'kindMain', subagent: 'kindSub', workflow: 'kindWorkflow' }
-    function SessionsSection({ tick }) {
+    function SessionsTable({ tick }) {
       const state = useApi('sessions', { limit: 30 }, [tick])
       if (state.loading || state.error) return h(LoadState, { state })
       const data = state.data
       const rows = data ? data.rows : []
       if (!data || rows.length === 0) return h('div', { className: 'ul-note' }, t('empty'))
-      return h('section', { className: 'ul-chartCard' },
-        h('div', { className: 'ul-secTitle' }, t('sessTitle')),
+      return h(React.Fragment, null,
         h('div', { className: 'ul-table ul-sessHead' },
           h('span', null, t('sName')), h('span', null, t('sKind')),
           h('span', null, t('sDays')), h('span', null, t('sReq')), h('span', null, t('sTok'))),
@@ -986,8 +1011,9 @@ window.__ModuleLoader__.load({
           h(DailySection, { tick: refreshTick }),
           h(HeatmapSection, { tick: refreshTick }),
           h(DonutSection, { tick: refreshTick }),
-          h(ToolsSection, { tick: refreshTick }),
-          h(SessionsSection, { tick: refreshTick })))
+          h('div', { className: 'ul-foldGrid' },
+            h(FoldCard, { title: t('toolsTitle') }, h(ToolsTable, { tick: refreshTick })),
+            h(FoldCard, { title: t('sessTitle') }, h(SessionsTable, { tick: refreshTick })))))
     }
 
     function PanelPage(props) { return h(PanelBody, { showBack: true, goBack: props.goBack }) }
