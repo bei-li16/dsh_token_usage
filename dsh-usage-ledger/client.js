@@ -443,14 +443,15 @@ window.__ModuleLoader__.load({
       }
       const hi = hover !== null && hover < n ? hover : null
       const tipFrac = hi !== null ? x(hi) / W : 0
-      // Hit-rate overlay path: straight dashed polyline through known buckets
-      // (gaps where the bucket has no prompt tokens stay undrawn).
+      // Hit-rate overlay path: one continuous dashed polyline through known
+      // buckets — null buckets (no prompt tokens that day) are SKIPPED, not
+      // broken at, so the line never shatters into floating segments.
       let ratePath = ''
       if (rate) {
         for (let i = 0; i < n; i++) {
           const v = rate.values[i]
           if (typeof v !== 'number') continue
-          ratePath += `${ratePath === '' || typeof rate.values[i - 1] !== 'number' ? 'M' : 'L'}${rnd(x(i))},${rnd(yRate(v))}`
+          ratePath += `${ratePath === '' ? 'M' : 'L'}${rnd(x(i))},${rnd(yRate(v))}`
         }
       }
       return h('div', { className: 'ul-chartWrap' },
