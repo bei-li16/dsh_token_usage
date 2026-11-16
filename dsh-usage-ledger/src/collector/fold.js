@@ -221,7 +221,10 @@ export class RequestFold {
             this.emitRequest(rec, out)
           }
         }
-        const marker = { ...this.base(), time: ev.time, day: dayKey(ev.time) }
+        const marker = {
+          ...this.base(), time: ev.time, day: dayKey(ev.time),
+          seq: typeof ev.seq === 'number' && Number.isFinite(ev.seq) ? ev.seq : undefined,
+        }
         this.turns.push(marker)
         out.push({ type: 'turn', marker })
         return out
@@ -377,11 +380,17 @@ export class RequestFold {
   /**
    * End-of-pass flush (backfill): every fact this fold deduped, exactly once.
    * Live mode dispatches fold() outputs as they arrive instead.
+   *
+   * `dropRunning` (gap catch-up): still-running records span the replay
+   * boundary — the live pass owns them; drop them instead of emitting stale
+   * "interrupted" evidence that could overwrite newer live facts.
+   * @param {{dropRunning?: boolean}} [options]
    */
-  flush() {
+  flush({ dropRunning = false } = {}) {
+    const take = (records) => (dropRunning ? records.filter((r) => r.status !== 'running') : records)
     return {
-      requests: [...this.requests.values()].map((r) => normalizeRequestFact(r)),
-      tools: [...this.tools.values()].map((t) => normalizeToolFact(t)),
+      requests: take([...this.requests.values()]).map((r) => normalizeRequestFact(r)),
+      tools: take([...this.tools.values()]).map((t) => normalizeToolFact(t)),
       turns: this.turns.slice(),
       meta: this.lastMetaName
         ? { id: this.sessionId, parentId: this.parentId, kind: this.kind, name: this.lastMetaName }

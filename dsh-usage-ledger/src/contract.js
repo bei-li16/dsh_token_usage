@@ -218,6 +218,8 @@ export function normalizeToolFact(f) {
  * @property {SessionKind} kind
  * @property {number} time
  * @property {string} day
+ * @property {number} [seq]   the turn/end event's seq — feeds the session's
+ *                            lastSeq high-water (off-window gap catch-up)
  */
 
 // ── rollup rows (KV domain `usage_ledger`, version 1) ─────────────────────
@@ -331,6 +333,12 @@ export function emptyDayToolRollup(day, tool) {
  * @property {number} turns
  * @property {number} toolCalls
  * @property {number} lastSeen
+ * @property {number} lastSeq      high-water of ACCOUNTED events (seq) for
+ *                                  this session; -1 = none yet. Additive field:
+ *                                  old rows default to -1. The collector
+ *                                  advances it at turn boundaries and session
+ *                                  close so a disable/enable (or upgrade)
+ *                                  window can be detected and replayed.
  */
 
 /** @returns {SessionIndexRow} */
@@ -338,7 +346,7 @@ export function emptySessionIndexRow(id) {
   return {
     id, parentId: null, kind: 'main', name: '', firstDay: '', lastDay: '',
     tokens: 0, inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0,
-    requests: 0, failures: 0, turns: 0, toolCalls: 0, lastSeen: 0,
+    requests: 0, failures: 0, turns: 0, toolCalls: 0, lastSeen: 0, lastSeq: -1,
   }
 }
 
@@ -381,6 +389,8 @@ export function emptySessionIndexRow(id) {
  * @property {(boundaries: Map<string, number>) => Promise<void>} reset  wipe all rows + cursor at live watermarks
  * @property {() => Promise<Map<string, number>>} liveSequences  current liveFirstSeq map (for /reset)
  * @property {(id: string, seq: number) => Promise<void>} markLiveSequence   live listener's first-observation boundary
+ * @property {(id: string) => Promise<number|null>} sessionHighSeq  a session row's lastSeq high-water (null = no row yet)
+ * @property {(id: string, seq: number) => Promise<void>} markSessionSeq  advance a session row's lastSeq (existing rows only)
  * @property {() => Promise<{cursor: LedgerCursor}>} cursorState  backfill reads this before scanning
  * @property {(ids: string[]) => Promise<void>} markBackfilled   sessions a backfill pass fully replayed
  * @property {() => Promise<void>} prune      drop SQLite rows older than retentionDays (idempotent)

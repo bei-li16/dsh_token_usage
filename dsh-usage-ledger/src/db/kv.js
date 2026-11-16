@@ -129,6 +129,9 @@ const sessionSchema = schemaOf((value) => {
     turns: num(v.turns),
     toolCalls: num(v.toolCalls),
     lastSeen: num(v.lastSeen),
+    // 增量字段（老行默认 -1）：已入账事件的 seq 高水位，供 disable/enable
+    // 窗口断档检测（collector 的 gap catch-up）使用。
+    lastSeq: num(v.lastSeq, -1),
   }
   // reasoningTokens 是 SessionIndexRow typedef 之外的增量字段（contract 只允许
   // 增量扩展）：SessionDetailResponse.totals 需要它，老行缺省为 0。

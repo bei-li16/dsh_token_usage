@@ -41,8 +41,10 @@ const RECENT_FACTS_CAP = 10000
 /** sessionDetail 明细上限（contract 钉死 cap 500）。 */
 const SESSION_RECORDS_CAP = 500
 /** Store 代码代际：index.js 的全局单例发现代际不符时 dispose 旧实例重建
- *  （插件 toggle 即可升级 store，无需重启应用）。 */
-export const STORE_VERSION = 3
+ *  （插件 toggle 即可升级 store，无需重启应用）。
+ *  v4：新增 sessionHighSeq / markSessionSeq（disable-enable 窗口断档回放
+ *  依赖的会话高水位）。 */
+export const STORE_VERSION = 4
 
 /** 错误对象 → 单行安全文本（status.backendError 用）。 */
 function sanitizeError(err) {
@@ -102,13 +104,15 @@ export function createLedgerStore({ storageDomain, config, logger }) {
   })()
 
   // ── 内部串行队列：所有写与 cursor 读-改-写都排队，任务永不 reject ──────
+  // 成功时透传 job 的返回值（sessionHighSeq 这类读方法需要）；失败吞错并
+  // 计数 recordFailures（返回 undefined，调用方按防御默认处理）。
   let chain = Promise.resolve()
   function enqueue(job) {
     const run = chain.then(async () => {
       await readyPromise
       if (disposed) return
       try {
-        await job()
+        return await job()
       } catch (err) {
         recordFailures += 1
         log.warn(`[dsh-usage-ledger] record job failed: ${sanitizeError(err)}`)
@@ -404,6 +408,33 @@ export function createLedgerStore({ storageDomain, config, logger }) {
         if (prev === undefined || seq < prev) {
           merged[id] = Math.round(seq)
           await kv.globalHandle.set({ backfilledSessions: cursor.backfilledSessions, liveFirstSeq: merged })
+        }
+      })
+    },
+
+    // 会话高水位（lastSeq）：collector 在 turn 边界 / 会话关闭时推进。
+    // 只更新已存在的行——空会话不建行，避免污染 /sessions 索引。
+    sessionHighSeq(id) {
+      return enqueue(async () => {
+        if (typeof id !== 'string' || id === '') return null
+        const row = kv?.sessions.get(id)
+        if (!row) return null
+        const seq = row.lastSeq
+        return typeof seq === 'number' && Number.isFinite(seq) ? seq : -1
+      })
+    },
+
+    markSessionSeq(id, seq) {
+      return enqueue(async () => {
+        if (!kv) return
+        if (typeof id !== 'string' || id === '') return
+        if (typeof seq !== 'number' || !Number.isFinite(seq) || seq < 0) return
+        const row = kv.sessions.get(id)
+        if (!row) return
+        const prev = typeof row.lastSeq === 'number' && Number.isFinite(row.lastSeq) ? row.lastSeq : -1
+        if (seq > prev) {
+          row.lastSeq = Math.round(seq)
+          await putRow(kv.sessions, id, row)
         }
       })
     },

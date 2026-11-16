@@ -11,6 +11,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createLedgerStore } from './store.js'
+import { DOMAIN_SPEC } from './kv.js'
 import { todayKey, dayMinus } from '../contract.js'
 
 // ── fake storageDomain：backing 共享 → 同一实例多次 open 模拟进程重开 ──────
@@ -258,6 +259,25 @@ async function main() {
   assert.equal(reopenedDetail.records.length, 5, '重开后 SQLite 明细仍在')
   const reopenedCursor = await store2.cursorState()
   assert.equal(reopenedCursor.cursor.liveFirstSeq.s1, 42, '重开后 cursor 仍在')
+
+  // ── 会话高水位（lastSeq）：disable/enable 断档检测的基准 ────────────────
+  // kv schema 往返：老行（无 lastSeq）默认 -1，新行原样保留。
+  const parsedOld = DOMAIN_SPEC.tables.sessions.valueSchema.parse({ id: 'legacy' })
+  assert.equal(parsedOld.lastSeq, -1, 'kv schema: 老会话行 lastSeq 默认 -1')
+  const parsedNew = DOMAIN_SPEC.tables.sessions.valueSchema.parse({ id: 'fresh', lastSeq: 42 })
+  assert.equal(parsedNew.lastSeq, 42, 'kv schema: lastSeq 原样往返')
+  // store 面：sessionHighSeq / markSessionSeq（只更新已有行，只前进）。
+  assert.equal(await store2.sessionHighSeq('no-such-row'), null, 'sessionHighSeq: 无行 → null')
+  store2.recordRequest({ id: 'hw:1:1:0', sessionId: 'hw', parentId: null, kind: 'main', turn: 1, step: 1, attempt: 0, time: at(today, 7), provider: 'p', model: 'm', status: 'completed', inputTokens: 3, outputTokens: 3, finishedAt: at(today, 7, 1) })
+  store2.recordTurn({ sessionId: 'hw', parentId: null, kind: 'main', time: at(today, 7, 2), day: today, seq: 17 })
+  await store2.flush()
+  assert.equal(await store2.sessionHighSeq('hw'), -1, '有行但未标记 → -1（区别于 null）')
+  await store2.markSessionSeq('hw', 17)
+  assert.equal(await store2.sessionHighSeq('hw'), 17, 'markSessionSeq 推进高水位')
+  await store2.markSessionSeq('hw', 9)
+  assert.equal(await store2.sessionHighSeq('hw'), 17, 'markSessionSeq 永不后退')
+  await store2.markSessionSeq('no-such-row', 5)
+  assert.equal(await store2.sessionHighSeq('no-such-row'), null, 'markSessionSeq 不建行（空会话不污染索引）')
 
   // ── reset：清空 + cursor 置边界 ────────────────────────────────────────
   await store2.reset(new Map([['s1', 7]]))

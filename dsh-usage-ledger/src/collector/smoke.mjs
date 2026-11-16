@@ -8,6 +8,11 @@
  * fork prefix (inheritedEventCount > 0), the workflow kind heuristic,
  * live capture + disposer teardown, and the cursor skip of a second pass.
  *
+ * Fix regressions (2026-11-16): live-session deferral (never marked
+ * backfilled without a usable boundary), the same-activation boundary race,
+ * off-window gap catch-up on first live observation, dispose tail
+ * catch-up, and flush({dropRunning}).
+ *
  * Run: node src/collector/smoke.mjs   (exit 0 = pass)
  */
 
@@ -33,10 +38,12 @@ function eq(got, want, label) {
 // ── mock store: records every call ──────────────────────────────────────────
 
 function mockStore() {
-  const calls = { request: [], tool: [], turn: [], meta: [], markLive: [], markBackfilled: [] }
+  const calls = { request: [], tool: [], turn: [], meta: [], markLive: [], markBackfilled: [], markSessionSeq: [] }
   let cursor = { backfilledSessions: [], liveFirstSeq: {} }
+  const sessions = new Map()
   return {
     calls,
+    sessions,
     setCursor(c) { cursor = c },
     recordRequest(f) { calls.request.push(f) },
     recordToolCall(f) { calls.tool.push(f) },
@@ -45,6 +52,12 @@ function mockStore() {
     async markLiveSequence(id, seq) { calls.markLive.push([id, seq]) },
     async cursorState() { return { cursor } },
     async markBackfilled(ids) { calls.markBackfilled.push(ids) },
+    async sessionHighSeq(id) { const row = sessions.get(id); return row ? (row.lastSeq ?? -1) : null },
+    async markSessionSeq(id, seq) {
+      calls.markSessionSeq.push([id, seq])
+      const row = sessions.get(id)
+      if (row && (row.lastSeq ?? -1) < seq) row.lastSeq = seq
+    },
     async prune() { calls.pruned = (calls.pruned ?? 0) + 1 },
   }
 }
@@ -338,6 +351,128 @@ async function main() {
   const d2 = degraded.start({})
   eq(warned.length, 1, 'ctx.on missing ⇒ one warning')
   d2()
+
+  // ── fix regression (2026-11-16): live session without a boundary is
+  //    DEFERRED, not marked backfilled — was: skipped forever, silently
+  //    dropping its whole persisted history (observed: 69.3M tokens → 0) ──
+  const logsD = new Map([
+    ['d1', { header: { id: 'd1' }, inheritedEventCount: 0, events: [
+      ev(0, T0, 'step/start', { turn: 1, step: 1 }),
+      ev(1, T0 + 100, 'assistant/message', { turn: 1, step: 1, message: {}, usage: { inputTokens: 1, outputTokens: 1 } }),
+      ev(2, T0 + 150, 'turn/end', { turn: 1, reason: 'completed' }),
+    ] }],
+  ])
+  const storeD = mockStore()
+  const collectorD = new LedgerCollector({ store: storeD, concurrency: 1 })
+  await collectorD.backfill(mockPersistence(logsD), { list: () => [{ id: 'd1' }] })
+  eq(storeD.calls.request.length, 0, 'deferred: live-unmarked session replays nothing now')
+  eq(storeD.calls.markBackfilled.length, 0, 'deferred: NOT marked backfilled')
+  ok((collectorD.status.deferredSessions ?? []).includes('d1'), 'deferred: status lists the session')
+  eq(collectorD.status.scannedSessions, 0, 'deferred: not counted as scanned')
+  // …and a later pass with the session closed replays it fully.
+  const storeD2 = mockStore()
+  const collectorD2 = new LedgerCollector({ store: storeD2, concurrency: 1 })
+  await collectorD2.backfill(mockPersistence(logsD), noLiveSessions)
+  ok(storeD2.calls.request.some((r) => r.id === 'd1:1:1:0'), 'deferred session replays fully once closed')
+  ok(storeD2.calls.markBackfilled.some((b) => b.includes('d1')), 'closed pass marks it backfilled')
+
+  // ── fix regression: same-activation live boundary closes the KV write race ──
+  const storeE = mockStore()
+  const collectorE = new LedgerCollector({ store: storeE, concurrency: 1 })
+  const handlersE = new Map()
+  collectorE.start({ on(name, fn) { handlersE.set(name, fn); return () => handlersE.delete(name) } })
+  const eHandle = { id: 'e1', header: {}, requestContext: () => ({ provider: 'p', model: 'm' }) }
+  // The live pass observes seq 5 first — the async KV boundary write has NOT
+  // landed in the cursor yet when backfill runs (the original race).
+  handlersE.get('session/event')(eHandle, ev(5, T0 + 5000, 'step/start', { turn: 2, step: 1 }))
+  const logsE = new Map([
+    ['e1', { header: { id: 'e1' }, inheritedEventCount: 0, events: [
+      ev(0, T0, 'step/start', { turn: 1, step: 1 }),
+      ev(1, T0 + 100, 'assistant/message', { turn: 1, step: 1, message: {}, usage: { inputTokens: 8, outputTokens: 9 } }),
+      ev(2, T0 + 150, 'turn/end', { turn: 1, reason: 'completed' }),
+      ev(5, T0 + 5000, 'step/start', { turn: 2, step: 1 }),
+    ] }],
+  ])
+  await collectorE.backfill(mockPersistence(logsE), { list: () => [{ id: 'e1' }] })
+  const eIds = storeE.calls.request.map((r) => r.id)
+  ok(eIds.includes('e1:1:1:0'), 'race fix: prefix replayed via the in-memory boundary')
+  eq(eIds.filter((id) => id === 'e1:2:1:0').length, 1, 'race fix: live-owned tail emitted once by the live pass, never re-replayed')
+  ok(storeE.calls.markBackfilled.some((b) => b.includes('e1')), 'race-fixed session marked backfilled')
+  ok(!(collectorE.status.deferredSessions ?? []).includes('e1'), 'race fix: not deferred')
+
+  // ── fix regression: off-window gap catch-up on first live observation ──
+  // (plugin disabled/upgraded while the session kept persisting events)
+  const storeF = mockStore()
+  storeF.setCursor({ backfilledSessions: ['f1'], liveFirstSeq: { f1: 3 } })
+  storeF.sessions.set('f1', { lastSeq: 9 })
+  const logsF = new Map([
+    ['f1', { header: { id: 'f1' }, inheritedEventCount: 0, events: [
+      // accounted prefix (seq ≤ 9) — must NOT be re-recorded
+      ev(0, T0, 'step/start', { turn: 1, step: 1 }),
+      ev(1, T0 + 10, 'assistant/message', { turn: 1, step: 1, message: {}, usage: { inputTokens: 1, outputTokens: 1 } }),
+      // the off-window gap (10..19): never accounted, never live-observed
+      ev(10, T0 + 1000, 'step/start', { turn: 2, step: 1 }),
+      ev(11, T0 + 1100, 'assistant/message', { turn: 2, step: 1, message: {}, usage: { inputTokens: 20, outputTokens: 5 } }),
+      ev(12, T0 + 1200, 'turn/end', { turn: 2, reason: 'completed' }),
+      // a request still running at the gap boundary — live pass owns it
+      ev(13, T0 + 1300, 'step/start', { turn: 3, step: 1 }),
+      // live-owned (≥ 20)
+      ev(20, T0 + 2000, 'turn/end', { turn: 3, reason: 'interrupted' }),
+    ] }],
+  ])
+  const collectorF = new LedgerCollector({ store: storeF, concurrency: 1 })
+  const handlersF = new Map()
+  collectorF.start({ on(name, fn) { handlersF.set(name, fn); return () => handlersF.delete(name) } })
+  await collectorF.backfill(mockPersistence(logsF), noLiveSessions) // cursor owns f1 → nothing replayed
+  handlersF.get('session/event')({ id: 'f1', header: {} }, ev(20, T0 + 2000, 'turn/end', { turn: 3, reason: 'interrupted' }))
+  await new Promise((resolve) => setTimeout(resolve, 50)) // fire-and-forget catch-up settles
+  const fIds = storeF.calls.request.map((r) => r.id)
+  ok(fIds.includes('f1:2:1:0'), 'gap catch-up replays the off-window range')
+  ok(!fIds.includes('f1:1:1:0'), 'gap catch-up does not re-replay the accounted prefix')
+  ok(!fIds.includes('f1:3:1:0'), 'gap catch-up drops records still running at the boundary')
+  const fTurnSeqs = storeF.calls.turn.map((m) => m.seq).sort((a, b) => a - b)
+  eq(fTurnSeqs.join(','), '12,20', 'turn markers: gap seq 12 + live seq 20, each exactly once')
+  eq(storeF.sessions.get('f1')?.lastSeq, 20, 'live turn/end advances the persisted high-water')
+
+  // ── fix regression: dispose tail catch-up (cursor session closed without a
+  //    single event this activation — its off-window tail has no live trigger) ──
+  const storeG = mockStore()
+  storeG.setCursor({ backfilledSessions: ['g1'], liveFirstSeq: { g1: 2 } })
+  storeG.sessions.set('g1', { lastSeq: 4 })
+  const logsG = new Map([
+    ['g1', { header: { id: 'g1' }, inheritedEventCount: 0, events: [
+      // accounted prefix (seq ≤ 4)
+      ev(0, T0, 'step/start', { turn: 1, step: 1 }),
+      ev(1, T0 + 10, 'assistant/message', { turn: 1, step: 1, message: {}, usage: { inputTokens: 1, outputTokens: 1 } }),
+      // off-window tail (≥ 5): closed while the plugin was off
+      ev(5, T0 + 1000, 'step/start', { turn: 2, step: 1 }),
+      ev(6, T0 + 1100, 'assistant/message', { turn: 2, step: 1, message: {}, usage: { inputTokens: 30, outputTokens: 4 } }),
+      ev(7, T0 + 1200, 'turn/end', { turn: 2, reason: 'completed' }),
+    ] }],
+  ])
+  const collectorG = new LedgerCollector({ store: storeG, concurrency: 1 })
+  const handlersG = new Map()
+  collectorG.start({ on(name, fn) { handlersG.set(name, fn); return () => handlersG.delete(name) } })
+  await collectorG.backfill(mockPersistence(logsG), noLiveSessions) // cursor owns g1 → nothing replayed
+  handlersG.get('session/disposed')({ id: 'g1', header: {} })
+  await new Promise((resolve) => setTimeout(resolve, 50))
+  const gIds = storeG.calls.request.map((r) => r.id)
+  ok(gIds.includes('g1:2:1:0'), 'dispose catch-up replays the unaccounted tail')
+  ok(!gIds.includes('g1:1:1:0'), 'dispose catch-up skips the accounted prefix')
+  ok(storeG.calls.turn.some((m) => m.seq === 7), 'dispose catch-up records the tail turn marker')
+
+  // ── fold flush dropRunning: still-running records never leak into a gap replay ──
+  {
+    const foldH = new RequestFold({ sessionId: 'h1' })
+    foldH.fold(ev(0, T0, 'step/start', { turn: 1, step: 1 }))
+    foldH.fold(ev(1, T0 + 10, 'assistant/message', { turn: 1, step: 1, message: {}, usage: { inputTokens: 2, outputTokens: 2 } }))
+    foldH.fold(ev(2, T0 + 20, 'step/start', { turn: 2, step: 1 })) // running at range end
+    const dropped = foldH.flush({ dropRunning: true })
+    eq(dropped.requests.length, 1, 'flush dropRunning drops still-running records')
+    eq(dropped.requests[0]?.id, 'h1:1:1:0', 'flush dropRunning keeps closed records')
+    const kept = foldH.flush()
+    eq(kept.requests.length, 2, 'flush default keeps running records')
+  }
 
   // ── summary ──
   if (failures > 0) {
