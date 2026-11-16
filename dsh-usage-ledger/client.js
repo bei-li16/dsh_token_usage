@@ -314,9 +314,13 @@ window.__ModuleLoader__.load({
     // ── lifetime summary cards (/summary) ──────────────────────────────────
     function SummaryCards({ tick }) {
       const state = useApi('summary', {}, [tick])
-      if (state.loading || state.error) return h(LoadState, { state })
+      // 空/加载/错误态也保住区块框架（标题在，内容换 LoadState/empty）。
+      if (state.loading || state.error || !state.data) {
+        return h('section', { className: 'ul-sec' },
+          h('div', { className: 'ul-secTitle' }, t('sumTitle')),
+          state.loading || state.error ? h(LoadState, { state }) : h('div', { className: 'ul-note' }, t('empty')))
+      }
       const s = state.data
-      if (!s) return h('div', { className: 'ul-note' }, t('empty'))
       const tokRow = (color, name, v) => ({ color, name, value: `${fmtInt(v)} tokens` })
       return h('section', { className: 'ul-sec' },
         h('div', { className: 'ul-secTitle' }, t('sumTitle')),
@@ -706,11 +710,23 @@ window.__ModuleLoader__.load({
         }
       }, [])
       React.useEffect(() => () => { if (roRef.current) roRef.current.disconnect() }, [])
-      if (state.loading || state.error) return h(LoadState, { state })
-      const data = state.data
-      if (!data || !data.days || data.days.length === 0) return h('div', { className: 'ul-note' }, t('empty'))
+      const modeSeg = h('div', { className: 'ul-seg' },
+        HEAT_MODES.map((m) => h('button', {
+          key: m.id, type: 'button',
+          className: m.id === mode ? 'ul-segBtn ul-segActive' : 'ul-segBtn',
+          onClick: () => setMode(m.id),
+        }, t(m.label))))
+      const stateData = state.data
+      const dataBad = !stateData || !stateData.days || stateData.days.length === 0
+        || Number.isNaN(heatDayMs(stateData.days[0].day))
+      // Empty/loading/error states keep the card frame + title + mode toggle.
+      if (state.loading || state.error || dataBad) {
+        return h('section', { className: 'ul-chartCard' },
+          h('div', { className: 'ul-cardHead' }, h('div', { className: 'ul-secTitle' }, t('heatTitle')), modeSeg),
+          state.loading || state.error ? h(LoadState, { state }) : h('div', { className: 'ul-note' }, t('empty')))
+      }
+      const data = stateData
       const today = dayKeyOf(new Date())
-      if (Number.isNaN(heatDayMs(data.days[0].day))) return h('div', { className: 'ul-note' }, t('empty'))
       const geo = heatGeometry(data.days[0].day, today, wrapW === 0 ? 0 : wrapW - HEAT_GUTTER)
       // Full rectangle: one cell per (col,row) in [weekStart, weekEnd]; days
       // outside the API window or in the future carry d:null (level-0, no tip).
@@ -762,12 +778,7 @@ window.__ModuleLoader__.load({
       return h('section', { className: 'ul-chartCard' },
         h('div', { className: 'ul-cardHead' },
           h('div', { className: 'ul-secTitle' }, t('heatTitle')),
-          h('div', { className: 'ul-seg' },
-            HEAT_MODES.map((m) => h('button', {
-              key: m.id, type: 'button',
-              className: m.id === mode ? 'ul-segBtn ul-segActive' : 'ul-segBtn',
-              onClick: () => setMode(m.id),
-            }, t(m.label))))),
+          modeSeg),
         h('div', { className: 'ul-heatWrap', ref: wrapRef },
           h('div', { className: 'ul-heatInner', style: { width: `${geo.width}px` } },
             h('svg', { width: geo.width, height: geo.height, viewBox: `0 0 ${geo.width} ${geo.height}`, role: 'img', style: { display: 'block' } },
@@ -869,10 +880,14 @@ window.__ModuleLoader__.load({
         }
         return () => { for (const c of cleanups) c() }
       }, [state.data])
-      if (state.loading || state.error) return h(LoadState, { state })
       const data = state.data
       const totals = data ? data.groupTotals.filter((g) => g.tokens > 0) : []
-      if (!data || totals.length === 0) return h('div', { className: 'ul-note' }, t('empty'))
+      // Empty/loading/error states keep the card frame + title.
+      if (state.loading || state.error || !data || totals.length === 0) {
+        return h('section', { className: 'ul-chartCard', ref: cardRef },
+          h('div', { className: 'ul-secTitle' }, `${t('donutTitle')}${rangeSuffix}`),
+          state.loading || state.error ? h(LoadState, { state }) : h('div', { className: 'ul-note' }, t('empty')))
+      }
       const names = data.groupNames ?? {}
       const top = totals.slice(0, 5)
       const rest = totals.slice(5)
