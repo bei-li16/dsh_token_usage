@@ -474,6 +474,30 @@ async function main() {
     eq(kept.requests.length, 2, 'flush default keeps running records')
   }
 
+  // ── fix regression: a live-observed session's marks ungate after its
+  //    prefix replay (the reset-rescan window: marks were gated while the
+  //    cursor was mid-rebuild) ──
+  const storeI = mockStore()
+  const collectorI = new LedgerCollector({ store: storeI, concurrency: 1 })
+  const handlersI = new Map()
+  collectorI.start({ on(name, fn) { handlersI.set(name, fn); return () => handlersI.delete(name) } })
+  const iHandle = { id: 'i1', header: {} }
+  handlersI.get('session/event')(iHandle, ev(5, T0, 'step/start', { turn: 2, step: 1 })) // first obs, no KV boundary yet
+  handlersI.get('session/event')(iHandle, ev(6, T0 + 50, 'turn/end', { turn: 2, reason: 'completed' })) // gated mark
+  const logsI = new Map([
+    ['i1', { header: { id: 'i1' }, inheritedEventCount: 0, events: [
+      ev(0, T0 - 1000, 'step/start', { turn: 1, step: 1 }),
+      ev(1, T0 - 900, 'assistant/message', { turn: 1, step: 1, message: {}, usage: { inputTokens: 6, outputTokens: 6 } }),
+      ev(2, T0 - 800, 'turn/end', { turn: 1, reason: 'completed' }),
+      ev(5, T0, 'step/start', { turn: 2, step: 1 }),
+      ev(6, T0 + 50, 'turn/end', { turn: 2, reason: 'completed' }),
+    ] }],
+  ])
+  storeI.sessions.set('i1', { lastSeq: -1 })
+  await collectorI.backfill(mockPersistence(logsI), { list: () => [{ id: 'i1' }] })
+  eq(storeI.sessions.get('i1')?.lastSeq, 6, 'reset-rescan window: prefix replay + ungated live claim covers the live span')
+  ok(collectorI.liveContiguous.has('i1'), 'reset-rescan window: session marked contiguous after prefix replay')
+
   // ── summary ──
   if (failures > 0) {
     console.error(`\nsmoke FAILED: ${failures}/${checks} checks failed`)

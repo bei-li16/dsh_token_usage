@@ -538,6 +538,14 @@ export class LedgerCollector {
     // exist — a zero-usage session has none and needs none). Replay claims
     // are trusted: the range below them was just replayed.
     this.markHighSeq(header.id, fromScratch ? maxSeq : Math.max(boundary - 1, -1), true)
+    // A live session observed THIS activation is contiguous once its prefix
+    // replay lands (the reset rescan path: its live marks were gated while the
+    // cursor was mid-rebuild) — ungate them and claim what the live pass saw.
+    if (isLiveNow && this.liveBoundaries.has(header.id)) {
+      this.liveContiguous.add(header.id)
+      const seen = this.liveHighSeq.get(header.id)
+      if (typeof seen === 'number') this.markHighSeq(header.id, seen, true)
+    }
     return 'done'
   }
 }
