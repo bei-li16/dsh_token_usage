@@ -214,11 +214,14 @@ window.__ModuleLoader__.load({
 .ul-heatWrap{}
 .ul-heatInner{position:relative;width:100%}
 .ul-heat{width:100%;height:auto;display:block}
-.ul-heat0{fill:color-mix(in srgb,var(--dsw-tone-1) 14%,transparent)}
-.ul-heat1{fill:color-mix(in srgb,var(--dsw-tone-1) 25%,transparent)}
-.ul-heat2{fill:color-mix(in srgb,var(--dsw-tone-1) 45%,transparent)}
-.ul-heat3{fill:color-mix(in srgb,var(--dsw-tone-1) 65%,transparent)}
-.ul-heat4{fill:color-mix(in srgb,var(--dsw-tone-1) 85%,transparent)}
+/* Level-0 = neutral gray (label color at low alpha), clearly separate from
+   the accent ramp so "no usage" never reads as a light blue cell. Levels
+   1-4 start at 35% accent so level-1 is unmistakably "has data". */
+.ul-heat0{fill:color-mix(in srgb,var(--dsw-alias-label-primary) 7%,transparent)}
+.ul-heat1{fill:color-mix(in srgb,var(--dsw-tone-1) 35%,transparent)}
+.ul-heat2{fill:color-mix(in srgb,var(--dsw-tone-1) 55%,transparent)}
+.ul-heat3{fill:color-mix(in srgb,var(--dsw-tone-1) 75%,transparent)}
+.ul-heat4{fill:color-mix(in srgb,var(--dsw-tone-1) 95%,transparent)}
 .ul-heatLegend{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--dsw-alias-label-tertiary)}
 .ul-heatKey{width:12px;height:12px;border-radius:3px;display:inline-block}
 .ul-donutRow{display:flex;flex-direction:column;align-items:center;gap:14px}
