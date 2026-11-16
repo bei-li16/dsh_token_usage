@@ -222,8 +222,6 @@ window.__ModuleLoader__.load({
 .ul-heat2{fill:color-mix(in srgb,var(--dsw-tone-1) 55%,transparent)}
 .ul-heat3{fill:color-mix(in srgb,var(--dsw-tone-1) 75%,transparent)}
 .ul-heat4{fill:color-mix(in srgb,var(--dsw-tone-1) 95%,transparent)}
-.ul-heatLegend{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--dsw-alias-label-tertiary)}
-.ul-heatKey{width:12px;height:12px;border-radius:3px;display:inline-block}
 .ul-donutRow{display:flex;flex-direction:column;align-items:center;gap:14px}
 .ul-donutWrap{position:relative;flex:0 0 auto}
 .ul-donutLegend{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;min-width:0}
@@ -807,11 +805,7 @@ window.__ModuleLoader__.load({
               ? h(ChartTip, { style: tipStyle },
                 h('div', { className: 'ul-tipTitle' }, fmtDayLong(hover.day)),
                 h('div', { className: 'ul-tipRow' }, `${fmtTok(hover.d.tokens)} tokens · ${fmtInt(hover.d.requests)} ${t('reqWord')}`))
-              : null)),
-        h('div', { className: 'ul-heatLegend' },
-          h('span', null, t('less')),
-          [0, 1, 2, 3, 4].map((lv) => h('span', { key: lv, className: `ul-heatKey ul-heat${lv}` })),
-          h('span', null, t('more'))))
+              : null)))
     }
 
     // ── model donut (/daily?group=model groupTotals, 30d window) ──────────
