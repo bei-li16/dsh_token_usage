@@ -180,10 +180,10 @@ window.__ModuleLoader__.load({
 .ul-cardLabel{font-size:12px;color:var(--dsw-alias-label-tertiary);margin-bottom:4px}
 .ul-cardValue{font-size:18px;font-weight:600;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ul-cardSub{font-size:11px;color:var(--dsw-alias-label-tertiary);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ul-band{display:flex;flex-wrap:wrap;box-sizing:border-box;border:1px solid var(--dsw-alias-border-l2);border-radius:10px;background:var(--dsw-alias-bg-layer-1)}
-/* Items hug their content (no per-cell trailing void); the filler eats the
-   row's leftover width so dividers stay tight against real values. */
-.ul-band::after{content:'';flex:1 1 auto}
+/* The strip hugs its items end-to-end: fit-content width, no trailing void
+   after the last value (was: full-width band + filler, which left a big
+   empty block inside the border). */
+.ul-band{display:inline-flex;flex-wrap:wrap;box-sizing:border-box;border:1px solid var(--dsw-alias-border-l2);border-radius:10px;background:var(--dsw-alias-bg-layer-1);max-width:100%;align-self:flex-start}
 .ul-bandItem{flex:0 0 auto;min-width:0;box-sizing:border-box;padding:12px 18px;position:relative;cursor:default}
 .ul-bandItem+.ul-bandItem{border-left:1px solid var(--dsw-alias-border-l2)}
 .ul-bandValue{font-size:19px;font-weight:600;color:var(--dsw-alias-label-primary);font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
