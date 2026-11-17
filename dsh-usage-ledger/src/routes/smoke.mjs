@@ -3,7 +3,9 @@
 // evil.com / cross-site / Origin 不一致 / 无 Origin 放行，外加 trustedHosts、
 // bind 地址、Origin 一致、"null" Origin、trust 抛错 fail-closed）、8 个方法的
 // happy path 与参数校验/clamp、错误码（非法日期/跨度超限/未知方法/非 POST/坏
-// JSON/超大 body）、reset 在 boot 扫描中 409、500 不回显内部错误文本。
+// JSON/超大 body）、reset 在 boot 扫描中 409、500 不回显内部错误文本；
+// task-15：session 分支的组装器合并（context/composition/children 速率
+// 透传、组装器不可用/抛错的优雅降级、byModel 行 llm 显示名 name）。
 
 import assert from 'node:assert/strict'
 import { buildLedgerRoute } from './routes.js'
@@ -35,7 +37,7 @@ async function call(route, opts) {
 
 // ── mock store/collector ─────────────────────────────────────────────────────
 
-function makeMocks() {
+function makeMocks(overrides = {}) {
   const calls = []
   const store = {
     status: () => ({
@@ -92,6 +94,8 @@ function makeMocks() {
     isRebuilding: () => state.rebuilding,
     resetAndRescan: async () => { state.resets++ },
     config: { heatmapWeeks: 7, retentionDays: 30 },
+    ...(overrides.sessionView !== undefined ? { sessionView: overrides.sessionView } : {}),
+    ...(overrides.llm !== undefined ? { llm: overrides.llm } : {}),
   })
   return { route, calls, collector, state, store }
 }
@@ -275,6 +279,76 @@ test('session: degraded 时 children 仍可用（KV 来源）而 byModel 空', a
   assert.equal(r.json.value.children.length, 1, 'degraded：children 仍可用')
   assert.equal(r.json.value.children[0].id, 's9c')
   assert.equal(r.json.value.children[0].tokens, 10)
+})
+
+// task-15：session 分支的组装器合并 ──────────────────────────────────────────
+
+test('session: 组装器合并 context/composition 与 children 速率', async () => {
+  const sessionView = {
+    calculate: async (id, childIds) => {
+      assert.equal(id, 's1')
+      assert.deepEqual(childIds, ['s2'], '组装器收到 store.children 的 id 列表')
+      return {
+        context: {
+          totalTokens: 294, contextWindow: 128000, provider: 'deepseek', model: 'deepseek-chat',
+          promptTokens: 400, cacheHitTokens: 0, cacheMissTokens: 410, cacheKnown: true,
+          buckets: [{ key: 'systemPrompt', tokens: 104 }],
+        },
+        composition: {
+          buckets: [{ key: 'systemPrompt', tokens: 208 }, { key: 'output', tokens: 90 }],
+          billedTokens: 860,
+          totals: { tokens: 860, inputTokens: 700, outputTokens: 90, cacheReadTokens: 60, cacheWriteTokens: 10, reasoningTokens: 5 },
+          requests: 2,
+        },
+        childRates: new Map([['s2', { avgFirstTokenMs: 233, tokensPerSecond: 50 }]]),
+      }
+    },
+  }
+  const { route } = makeMocks({ sessionView })
+  const r = await call(route, { url: '/usage-ledger/api/session', headers: { ...LOOPBACK }, body: JSON.stringify({ id: 's1' }) })
+  assert.equal(r.status, 200)
+  assert.equal(r.json.value.context.totalTokens, 294)
+  assert.equal(r.json.value.context.promptTokens, 400)
+  assert.equal(r.json.value.composition.billedTokens, 860)
+  assert.equal(r.json.value.composition.requests, 2)
+  assert.equal(r.json.value.children[0].avgFirstTokenMs, 233, 'children 按 id 补 firstToken 均值')
+  assert.equal(r.json.value.children[0].tokensPerSecond, 50, 'children 按 id 补速度')
+})
+
+test('session: 组拆装不可用 → 优雅降级（context/composition null、速率 null）', async () => {
+  const { route } = makeMocks()
+  const r = await call(route, { url: '/usage-ledger/api/session', headers: { ...LOOPBACK }, body: JSON.stringify({ id: 's1' }) })
+  assert.equal(r.status, 200)
+  assert.equal(r.json.value.context, null)
+  assert.equal(r.json.value.composition, null)
+  assert.equal(r.json.value.children[0].avgFirstTokenMs, null)
+  assert.equal(r.json.value.children[0].tokensPerSecond, null)
+})
+
+test('session: 组拆装抛错 → 优雅降级（不 500，详情页照常）', async () => {
+  const sessionView = { calculate: async () => { throw new Error('log decode boom') } }
+  const { route } = makeMocks({ sessionView })
+  const r = await call(route, { url: '/usage-ledger/api/session', headers: { ...LOOPBACK }, body: JSON.stringify({ id: 's1' }) })
+  assert.equal(r.status, 200)
+  assert.equal(r.json.value.id, 's1')
+  assert.equal(r.json.value.context, null)
+  assert.equal(r.json.value.composition, null)
+  assert.equal(r.json.value.children[0].avgFirstTokenMs, null)
+})
+
+test('session: byModel 行挂 llm 解析的显示名 name（解析不到则省略）', async () => {
+  const llm = () => ({
+    resolveModelInfo: async (provider, model) => (model === 'gpt-x' ? { name: 'GPT X Display' } : undefined),
+  })
+  const { route } = makeMocks({ llm })
+  const r = await call(route, { url: '/usage-ledger/api/session', headers: { ...LOOPBACK }, body: JSON.stringify({ id: 's1' }) })
+  assert.equal(r.status, 200)
+  assert.equal(r.json.value.byModel[0].name, 'GPT X Display', 'byModel 行挂显示名')
+  // 无 llm 的对照：省略 name（UI 回退显示 model id）。
+  const { route: bareRoute } = makeMocks()
+  const bare = await call(bareRoute, { url: '/usage-ledger/api/session', headers: { ...LOOPBACK }, body: JSON.stringify({ id: 's1' }) })
+  assert.equal(bare.status, 200)
+  assert.ok(!('name' in bare.json.value.byModel[0]), '解析不到时省略 name 字段')
 })
 
 test('tools: 日期范围透传', async () => {

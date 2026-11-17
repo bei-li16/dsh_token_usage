@@ -13,7 +13,9 @@
 //   content-type: application/json; charset=utf-8 + cache-control: no-store。
 // - 4xx 回显用户向消息；500 一律 'internal error'，真实错误只进 deps.logger
 //   （index.js 目前未接线 logger，静默丢弃也不影响正确性）。
-// - 本层只读 store（派生缓存），绝不自己读会话日志；日期校验照抄 token-total 的
+// - 本层只读 store（派生缓存）与注入的会话视图组装器（task-15：session 端点
+//   合并组装器的日志重放输出——children 速率 + context/composition；组装器
+//   内部带短缓存，本层绝不直接碰会话日志）；日期校验照抄 token-total 的
 //   parseDayKey（回绝 2026-13-45 这类翻卷形状），跨度上限 366 天。
 
 import { createTrustFence } from './fence.js'
@@ -172,6 +174,12 @@ async function resolveGroupNames(refs, llm) {
  * @param {() => Promise<void>} deps.resetAndRescan
  * @param {{heatmapWeeks?: number, retentionDays?: number}} deps.config
  * @param {{warn?: (msg: unknown) => void}} [deps.logger] 可选（index.js 目前不接线）
+ * @param {{calculate: (sessionId: string, childIds?: string[]) => Promise<{context: any,
+ *          composition: any, childRates: Map<string, {avgFirstTokenMs: number|null,
+ *          tokensPerSecond: number|null}>}>}|null} [deps.sessionView]
+ *          可选（task-15）：会话视图组装器——session 端点合并其日志重放输出
+ *          （children 按 id 补速率；顶层挂 context/composition）。未注入或
+ *          抛错时优雅降级（null），详情页照常可用。
  */
 export function buildLedgerRoute(deps) {
   const { store, collector, trust, isRebuilding, resetAndRescan } = deps
@@ -238,7 +246,60 @@ export function buildLedgerRoute(deps) {
       if (id === '') {
         throw new LedgerApiError(400, 'bad_request', 'usage ledger: session needs a non-empty id')
       }
-      return store.sessionDetail(id)
+      const detail = await store.sessionDetail(id)
+      // 会话视图组装器合并（task-15）：children 按 id 补应答速率，顶层挂
+      // context/composition（日志按需重放 + 短缓存，见 src/session-view/）。
+      // 组装器未注入或抛错 → 优雅降级（null），绝不让 500 砸掉详情页。
+      const view = deps.sessionView
+      let extra = null
+      if (view !== null && typeof view === 'object' && typeof view.calculate === 'function') {
+        try {
+          const childIds = (Array.isArray(detail.children) ? detail.children : [])
+            .map((child) => (child !== null && typeof child === 'object' ? child.id : undefined))
+            .filter((x) => typeof x === 'string' && x !== '')
+          extra = await view.calculate(id, childIds)
+        } catch (err) {
+          logWarn(err)
+          extra = null
+        }
+      }
+      detail.context = extra !== null && typeof extra === 'object' ? (extra.context ?? null) : null
+      detail.composition = extra !== null && typeof extra === 'object' ? (extra.composition ?? null) : null
+      const rates = extra !== null && typeof extra === 'object' && extra.childRates !== null && typeof extra.childRates === 'object'
+        ? extra.childRates
+        : null
+      if (Array.isArray(detail.children)) {
+        for (const child of detail.children) {
+          if (child === null || typeof child !== 'object') continue
+          const rate = rates !== null
+            ? (rates instanceof Map ? rates.get(child.id) : rates[child.id])
+            : undefined
+          child.avgFirstTokenMs = typeof rate?.avgFirstTokenMs === 'number' ? rate.avgFirstTokenMs : null
+          child.tokensPerSecond = typeof rate?.tokensPerSecond === 'number' ? rate.tokensPerSecond : null
+        }
+      }
+      // byModel 行的模型显示名（task-15 补充，daily groupNames 同款解析）：
+      // llm 元数据解析得到显示名则挂 name，解析不到则省略（UI 回退显示 model id）。
+      if (Array.isArray(detail.byModel)) {
+        try {
+          const refs = new Set()
+          for (const row of detail.byModel) {
+            if (typeof row?.provider === 'string' && typeof row?.model === 'string' && row.model !== '') {
+              refs.add(row.provider ? `${row.provider}/${row.model}` : row.model)
+            }
+          }
+          const names = await resolveGroupNames([...refs], deps.llm ? deps.llm() : undefined)
+          for (const row of detail.byModel) {
+            if (typeof row?.provider !== 'string' || typeof row?.model !== 'string') continue
+            const ref = row.provider ? `${row.provider}/${row.model}` : row.model
+            const name = typeof names[ref] === 'string' ? names[ref].trim() : ''
+            if (name !== '') row.name = name
+          }
+        } catch (err) {
+          logWarn(err)
+        }
+      }
+      return detail
     },
 
     tools: async (body) => store.tools(resolveDateRange(body)),

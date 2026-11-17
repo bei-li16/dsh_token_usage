@@ -4,23 +4,56 @@
 
 Each session page gains a Usage tab (`conversation.view` slot) with that
 session's own breakdown — aligned with token-total's session view, minus its
-request-records section (a deliberate design decision):
+request-records section (a deliberate design decision). A scope line under
+the live header notes that the numbers cover this session and all its
+subagents, accumulated from the historical logs:
 
 - **Six metric cards**: requests (with failure count and failure rate), total /
   input / output tokens, cache hit rate (cache-read over the three prompt
   buckets), and decode speed with the average first-token wait.
+- **Current context card**: what this session's NEXT request would carry,
+  rebuilt from the session's own log (fork-inherited prefix stripped).
+  Shadowed events (compaction prune/summary) are dropped, compaction
+  summaries stand in as injected content, and the tool catalogue comes from
+  the newest request header. Token counts are character-class ESTIMATES over
+  7 buckets (system prompt, user, skill, tool results, tool definitions,
+  injected, assistant — output never occupies the window); the headline is
+  the provider-exact billed prompt when the newest usage report has one,
+  otherwise the replay estimate, and the context-window occupancy
+  (`used / window`) drives the progress bar. Null (card hidden) when the log
+  is unreadable or empty.
+- **Token stats card**: what every request in the session tree actually paid
+  for. Each request pays for the whole replayed message list, so a bucket's
+  number is the sum of its size at EVERY request — 8 buckets (the 7 plus
+  output, which never replays and lands in its own bucket). Bucket numbers
+  are estimates (marked ≈ in the legend); the donut's center total and the
+  cache-hit badge come straight from provider usage records and are exact.
+  Null when no request ever reported usage.
 - **Sub-session table**: descendant sessions (name, requests, tokens, cache
-  hit rate, kind). Sourced from the permanent KV session index, so it stays
-  available even when the SQLite detail backend is degraded.
+  hit rate, average first-token wait, token speed, kind). Sourced from the
+  permanent KV session index, so it stays available even when the SQLite
+  detail backend is degraded. The two rate columns are log-replay values
+  counting completed records only: first-token averages count only completed
+  records with a value, and speed = Σoutput/(ΣdecodeMs/1000) over completed
+  records with a decode window; null when the child's log is unreadable or
+  reports no rate.
 - **Per-model table**: requests plus input / output / cache-read /
   cache-write token buckets and cache hit rate, aggregated by an unbounded
   SQLite `GROUP BY` over the session and its descendants (not truncated by
   the detail cap). Needs the detail backend, so it is empty while degraded;
-  tool chips likewise.
+  tool chips likewise. Rows show the model's display name when the llm
+  metadata service resolves one, the route id otherwise.
 - **Live header**: a 2-second serialized poll (at most one in-flight request,
   with an immediate catch-up fetch when the tab becomes visible again) with
   the last successful read's clock stamp, plus a manual refresh that never
   stalls behind an in-flight poll. A failed poll keeps the last good data.
+
+The context/composition cards and the children rate columns are assembled on
+demand by a log-replay calculator whose output the session endpoint merges
+in: persistence is read per request through a getter, results are cached
+in-process (invalidated when a session log's stat changes, 60 s TTL, at most
+32 sessions), and every failure degrades to null — the detail page stays
+available.
 
 ## Backfill semantics (disable / reinstall / upgrade)
 

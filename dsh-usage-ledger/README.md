@@ -13,11 +13,24 @@ Request-level token usage ledger for DeepSeek Harness.
   slot) with that session's own breakdown — six metric cards (requests with
   failure count and rate, total / input / output tokens, cache hit rate,
   decode speed with average first-token wait), a sub-session table of
-  descendant sessions (sourced from the permanent KV session index, so it
-  stays available even when the SQLite detail backend is degraded), a
-  per-model table with the four token buckets, tool chips, and a live header
-  with 2-second polling and a manual refresh. No per-request detail table —
-  a deliberate design decision.
+  descendant sessions with their answer rates (KV-sourced, available even
+  degraded; the rate columns count completed records only), a per-model
+  table with the four token buckets, tool chips, and a live header with
+  2-second polling and a manual refresh. Two live cards are rebuilt on
+  demand from the session logs: the *current context* card estimates — by
+  character classes — what the next request would carry across 7 buckets
+  (system prompt, user, skill, tool results, tool definitions, injected,
+  assistant; shadowed events dropped, compaction summaries standing in as
+  injected), headline the provider-exact billed prompt and context-window
+  occupancy on a progress bar; the *token stats* card splits what every
+  request paid for across 8 buckets (the 7 plus output — each request pays
+  for the whole replayed message list), with the exact billed total in the
+  donut's center and the cache-hit rate as a badge. Bucket numbers are
+  estimates (marked ≈); billed values come from provider usage and are
+  exact. A scope line notes the numbers cover this session and all
+  subagents, accumulated from the historical logs. Aligned with
+  token-total's panel except for its request-records section — kept absent
+  by design.
 
 All data is derived from session logs; recording is observational and never
 interferes with turns. Do not enable together with `dsh-token-total`: both

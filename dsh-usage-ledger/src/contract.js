@@ -475,20 +475,67 @@ export function emptySessionIndexRow(id) {
  * @property {{id: string, parentId: string|null, kind: SessionKind, name: string,
  *             requests: number, failures: number, turns: number,
  *             tokens: number, inputTokens: number, outputTokens: number,
- *             cacheReadTokens: number, cacheWriteTokens: number}[]} children
+ *             cacheReadTokens: number, cacheWriteTokens: number,
+ *             avgFirstTokenMs: number|null, tokensPerSecond: number|null}[]} children
  *            KV-sourced descendant rows (BFS below the requested session,
  *            excluding the root itself; [] when none). `tokens` is the
  *            four-bucket sum, same 口径 as `totals`. Available even when
- *            degraded (KV is its only source).
+ *            degraded (KV is its only source). The two rate columns come from
+ *            the log-replay assembler (completed-only 口径); null when the
+ *            child's log is unreadable or reports no rate.
  * @property {number|null} avgFirstTokenMs   over completed records in the detail window
  * @property {number|null} tokensPerSecond
+ * @property {SessionContextSummary|null} context
+ *            log-replay view of what the session's NEXT request would carry
+ *            (null when the log is unreadable or has no events)
+ * @property {SessionUsageComposition|null} composition
+ *            log-replay spend composition over the session tree (null when
+ *            no request ever reported usage)
  * @property {{model: string, provider: string, tokens: number, requests: number, failures: number,
- *             inputTokens: number, outputTokens: number, cacheReadTokens: number, cacheWriteTokens: number}[]} byModel
+ *             inputTokens: number, outputTokens: number, cacheReadTokens: number, cacheWriteTokens: number,
+ *             name?: string}[]} byModel
  *            unbounded SQLite GROUP BY over member sessions (`tokens` =
- *            computedTotal sum; [] when degraded)
+ *            computedTotal sum; [] when degraded). `name` is the model
+ *            selector's display name resolved via the optional llm service;
+ *            omitted when unresolvable (the UI falls back to the model id).
  * @property {RequestFact[]} records         SQLite detail (30-day window), newest first
  * @property {{name: string, calls: number, failures: number}[]} tools
  * @property {boolean} degraded              true when records/tools are unavailable (KV-only)
+ */
+
+/**
+ * The session page's "current context" card: what the session's next request
+ * would carry, rebuilt from the session's own log (shadowed events dropped,
+ * compaction summaries standing in as injected memory, the newest
+ * request/header tool catalogue). Token counts are character-class ESTIMATES;
+ * `promptTokens`/cache fields are the provider's exact numbers from the
+ * newest usage report.
+ * @typedef {Object} SessionContextSummary
+ * @property {number} totalTokens            sum of the 7 buckets (estimate)
+ * @property {number|null} contextWindow     from `request/context` (null when absent)
+ * @property {string} provider
+ * @property {string} model
+ * @property {number|null} promptTokens       what the newest answered request was billed for input-side
+ * @property {number} cacheHitTokens
+ * @property {number} cacheMissTokens
+ * @property {boolean} cacheKnown
+ * @property {{key: 'systemPrompt'|'user'|'skill'|'toolResult'|'toolDef'|'injected'|'assistant',
+ *             tokens: number}[]} buckets     7 buckets in legend order (no output)
+ */
+
+/**
+ * The session page's "Token stats" card: what the session tree's requests
+ * actually paid for, split by what filled each prompt. Each request pays for
+ * the whole replayed message list, so a bucket's number is the sum of its size
+ * AT EVERY REQUEST. Bucket tokens are estimates; billed/totals/requests come
+ * straight from provider usage records and are exact.
+ * @typedef {Object} SessionUsageComposition
+ * @property {{key: 'systemPrompt'|'user'|'skill'|'toolResult'|'toolDef'|'injected'|'assistant'|'output',
+ *             tokens: number}[]} buckets      8 buckets in legend order
+ * @property {number} billedTokens            exact four-bucket sum over provider usage
+ * @property {{tokens: number, inputTokens: number, outputTokens: number, cacheReadTokens: number,
+ *             cacheWriteTokens: number, reasoningTokens: number}} totals
+ * @property {number} requests                requests that reported usage
  */
 
 /**

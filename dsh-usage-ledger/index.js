@@ -14,6 +14,7 @@
 import { createLedgerStore, STORE_VERSION } from './src/db/store.js'
 import { LedgerCollector } from './src/collector/collector.js'
 import { buildLedgerRoute } from './src/routes/routes.js'
+import { createSessionViewCalculator } from './src/session-view/calculator.js'
 
 export const name = 'dsh-usage-ledger'
 
@@ -225,6 +226,12 @@ export function apply(ctx, rawConfig = {}) {
       // Model display-name metadata for /daily groupNames (optional service;
       // probed with ctx.get because a traced Context throws on absent reads).
       llm: () => ctx.get('llm'),
+      // Session-view assembler (task-15): on-demand log replay for the
+      // session page's context/composition cards + children speed columns.
+      // persistence goes through a getter (the llm injection precedent) so a
+      // remount window can never hold a stale direct reference; the assembler
+      // keeps its own in-process short cache and degrades to nulls.
+      sessionView: createSessionViewCalculator({ getPersistence: () => ctx.sessionPersistence, logger: ctx.logger }),
     })
     const dispose = ctx.webServer.register(route)
     return dispose

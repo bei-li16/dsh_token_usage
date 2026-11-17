@@ -40,9 +40,18 @@ window.__ModuleLoader__.load({
       kindMain: '主会话', kindSub: '子代理', kindWorkflow: '工作流',
       svTotals: '会话汇总（含子孙）', svTools: '工具调用',
       svDegraded: '明细已超保留期或不可用，仅显示永久汇总。',
-      svLive: '实时', svAsOf: '更新于', svRefresh: '刷新',
+      svLive: '实时更新', svAsOf: '统计截至', svRefresh: '刷新',
       svTokens: 'Tokens', svChildren: '子会话', svModels: '模型', svModel: '模型', svHit: '命中率',
+      svCacheHitShort: '缓存命中', svTokPerSec: 'tok/s',
       svNoChildren: '暂无子会话', svNoModels: '暂无模型数据',
+      svTokSpeed: 'token 速度', svScope: '本会话及所有子代理 · 历史日志累计',
+      currentContextTitle: '当前上下文', contextUsedShort: '上下文已用',
+      contextWindowTotal: '{used} / {window} tokens', contextWindowTotalUnknown: '{used} tokens',
+      statsTitle: 'Token 统计', statsTotal: '总用量', statsCacheHit: '缓存命中',
+      statsIncludesThinking: '含思考', statsEmpty: '本会话还没有可统计的 token',
+      bucketSystemPrompt: '系统提示词', bucketUser: '用户消息', bucketSkill: '技能注入',
+      bucketToolResult: '工具结果', bucketToolDef: '工具定义', bucketInjected: '注入内容',
+      bucketAssistant: '助手消息', bucketOutput: '输出',
       tokPerS: 't/s',
       reqWord: '次请求', recordFail: '条写入失败',
       sessTotal: '共 {n} 个会话',
@@ -69,7 +78,16 @@ window.__ModuleLoader__.load({
       svDegraded: 'Detail has aged out of retention or is unavailable; permanent rollup only.',
       svLive: 'Live', svAsOf: 'as of', svRefresh: 'Refresh',
       svTokens: 'Tokens', svChildren: 'Sub-sessions', svModels: 'Models', svModel: 'Model', svHit: 'Hit',
+      svCacheHitShort: 'cache hit', svTokPerSec: 'tok/s',
       svNoChildren: 'No sub-sessions', svNoModels: 'No model data',
+      svTokSpeed: 'Token speed', svScope: 'This session and all subagents · Historical log totals',
+      currentContextTitle: 'Current context', contextUsedShort: 'context used',
+      contextWindowTotal: '{used} / {window} tokens', contextWindowTotalUnknown: '{used} tokens',
+      statsTitle: 'Token stats', statsTotal: 'Total usage', statsCacheHit: 'Cache hit',
+      statsIncludesThinking: 'incl. thinking', statsEmpty: 'No token spend recorded for this session yet',
+      bucketSystemPrompt: 'System prompt', bucketUser: 'User messages', bucketSkill: 'Skill injection',
+      bucketToolResult: 'Tool results', bucketToolDef: 'Tool definitions', bucketInjected: 'Injected content',
+      bucketAssistant: 'Assistant messages', bucketOutput: 'Output',
       tokPerS: 't/s',
       reqWord: 'requests', recordFail: 'write failures',
       sessTotal: '{n} sessions',
@@ -176,10 +194,15 @@ window.__ModuleLoader__.load({
 .ul-panel{display:flex;flex-direction:column;gap:18px;min-width:0}
 .ul-banner{box-sizing:border-box;padding:8px 12px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-secondary);font-size:12px}
 .ul-sec{display:flex;flex-direction:column;gap:10px}
-.ul-secTitle{font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary)}
+.ul-secTitle{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary)}
+.ul-count{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:18px;padding:0 7px;border-radius:9px;background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-tertiary);font-size:11px;font-weight:400;font-variant-numeric:tabular-nums}
+.ul-hit{color:var(--dsw-alias-state-success-primary,var(--dsw-alias-label-primary))}
+.ul-mdNameCell{display:flex;align-items:center;gap:6px;min-width:0}
+.ul-mdLogo{width:16px;height:16px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;line-height:1;color:var(--dsw-alias-bg-base);background:color-mix(in srgb,var(--dsw-tone-1) 65%,transparent);flex:0 0 auto}
 .ul-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
 .ul-card{box-sizing:border-box;padding:12px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);min-width:0}
-.ul-cardLabel{font-size:12px;color:var(--dsw-alias-label-tertiary);margin-bottom:4px}
+.ul-cardLabel{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--dsw-alias-label-tertiary);margin-bottom:4px}
+.ul-cardIcon{display:inline-flex;flex:0 0 auto;color:var(--dsw-alias-label-tertiary)}
 .ul-cardValue{font-size:18px;font-weight:600;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ul-cardSub{font-size:11px;color:var(--dsw-alias-label-tertiary);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* Full-width strip, every cell the SAME width (flex-basis 0 → truly equal),
@@ -248,16 +271,69 @@ window.__ModuleLoader__.load({
 .ul-session{display:flex;flex-direction:column;gap:18px;color:var(--dsw-alias-label-primary);font:inherit;padding:8px 0}
 .ul-svHead{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
 .ul-svLive{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--dsw-alias-label-secondary)}
-.ul-liveDot{width:8px;height:8px;border-radius:50%;background:var(--dsw-tone-1);flex:0 0 auto}
+.ul-liveDot{width:8px;height:8px;border-radius:50%;background:var(--dsw-alias-state-success-primary,var(--dsw-tone-1));flex:0 0 auto}
 .ul-svAsOf{color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}
 .ul-svRefresh{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);border-radius:6px;padding:2px 10px;cursor:pointer;font:inherit;font-size:12px}
 .ul-svRefresh:hover{background:var(--dsw-alias-interactive-bg-hover)}
-.ul-chHead,.ul-chRow{grid-template-columns:minmax(96px,1.6fr) 52px 70px 62px minmax(64px,1fr)}
+.ul-chHead,.ul-chRow{grid-template-columns:minmax(88px,1.5fr) 46px 64px 56px 56px 62px minmax(56px,1fr)}
 .ul-chHead{color:var(--dsw-alias-label-tertiary);border-bottom:1px solid var(--dsw-alias-border-l2);padding-bottom:6px}
 .ul-chRow{padding:5px 0;border-bottom:1px solid color-mix(in srgb,var(--dsw-alias-border-l2) 50%,transparent);color:var(--dsw-alias-label-secondary)}
 .ul-mdHead,.ul-mdRow{grid-template-columns:minmax(110px,1.8fr) 52px minmax(64px,1fr) minmax(64px,1fr) minmax(64px,1fr) minmax(64px,1fr) 62px}
 .ul-mdHead{color:var(--dsw-alias-label-tertiary);border-bottom:1px solid var(--dsw-alias-border-l2);padding-bottom:6px}
 .ul-mdRow{padding:5px 0;border-bottom:1px solid color-mix(in srgb,var(--dsw-alias-border-l2) 50%,transparent);color:var(--dsw-alias-label-secondary)}
+.ul-scopeNote{font-size:11px;color:var(--dsw-alias-label-tertiary);margin-top:-4px}
+/* ── the two live cards: current context + token stats (token-total) ─────
+   Each bucket sets --ul-bucket, and the swatch, ring segment, bar segment
+   and legend value all read that one variable. Hues are this plugin's own
+   (artwork exception, same as PALETTE). */
+.ul-svGrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:stretch}
+@media (max-width:1100px){.ul-svGrid{grid-template-columns:1fr}}
+.ul-ucCard{display:flex;flex-direction:column;min-width:0;box-sizing:border-box;border:1px solid var(--dsw-alias-border-l2);border-radius:10px;background:var(--dsw-alias-bg-layer-1);overflow:hidden}
+.ul-ucHead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px 0}
+.ul-ucTitle{font-size:13px;font-weight:600;color:var(--dsw-alias-label-primary);white-space:nowrap}
+.ul-ucModel{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:var(--dsw-alias-label-tertiary)}
+.ul-ucCache{flex:none;font-size:11px;color:var(--dsw-alias-label-tertiary);white-space:nowrap}
+.ul-ucCache b{margin-left:2px;font-weight:600;color:var(--dsw-alias-state-success-primary,var(--dsw-alias-label-primary));font-variant-numeric:tabular-nums}
+.ul-ucBody{flex:1 1 auto;box-sizing:border-box;padding:12px 14px 14px;display:flex;flex-direction:column}
+.ul-ucTotalRow{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.ul-ucTotal{font-size:20px;font-weight:650;letter-spacing:-.3px;color:var(--dsw-alias-label-primary);font-variant-numeric:tabular-nums;white-space:nowrap}
+.ul-ucShare{flex:none;font-size:11px;color:var(--dsw-alias-label-tertiary);white-space:nowrap}
+.ul-ucShare b{color:var(--dsw-alias-label-secondary);font-weight:600;font-variant-numeric:tabular-nums}
+.ul-ucBar{display:flex;width:100%;height:10px;margin:12px 0 14px;border-radius:999px;overflow:hidden;background:var(--dsw-alias-border-l1)}
+.ul-ucBarSeg{height:100%;flex:none;background:var(--ul-bucket)}
+.ul-ucBarEmpty{display:block;width:100%;height:100%;background:repeating-linear-gradient(90deg,var(--dsw-alias-border-l2) 0 4px,transparent 4px 8px)}
+.ul-ucStats{display:flex;align-items:center;gap:16px}
+.ul-ucRingWrap{position:relative;flex:none;width:116px;height:116px}
+.ul-ucRingTrack{fill:none;stroke:var(--dsw-alias-border-l1)}
+.ul-ucRingSeg{fill:none;stroke:var(--ul-bucket)}
+.ul-ucRingCenter{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;text-align:center;pointer-events:none}
+.ul-ucRingTotal{font-size:17px;font-weight:650;letter-spacing:-.3px;color:var(--dsw-alias-label-primary);font-variant-numeric:tabular-nums}
+.ul-ucRingCaption{font-size:10px;color:var(--dsw-alias-label-tertiary)}
+.ul-ucLegend{flex:1 1 auto;min-width:0;display:grid;grid-template-rows:repeat(4,auto);grid-auto-flow:column;gap:7px 16px}
+@media (max-width:520px){.ul-ucStats{flex-wrap:wrap;justify-content:center}.ul-ucLegend{grid-template-rows:none;grid-auto-flow:row;grid-template-columns:minmax(0,1fr);width:100%}}
+.ul-ucRow{display:grid;grid-template-columns:7px minmax(0,1fr) auto auto;align-items:center;gap:6px;min-width:0;font-size:11px}
+.ul-ucSwatch{width:7px;height:7px;border-radius:50%;background:var(--ul-bucket)}
+.ul-ucName{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-secondary)}
+.ul-ucPct{color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.ul-ucVal{color:var(--ul-bucket);font-variant-numeric:tabular-nums;font-weight:500;text-align:right;white-space:nowrap}
+.ul-ucSuffix{color:var(--dsw-alias-label-tertiary);font-weight:400}
+.ul-ucEmpty{margin:16px 0 18px;text-align:center;font-size:12px;color:var(--dsw-alias-label-tertiary)}
+.ul-tone-systemPrompt{--ul-bucket:#6f6bf5}
+.ul-tone-user{--ul-bucket:#2bb673}
+.ul-tone-skill{--ul-bucket:#16b8a6}
+.ul-tone-toolResult{--ul-bucket:#4d6bfe}
+.ul-tone-toolDef{--ul-bucket:#f0a53a}
+.ul-tone-injected{--ul-bucket:#a75ff0}
+.ul-tone-assistant{--ul-bucket:#7c8cff}
+.ul-tone-output{--ul-bucket:#ef5da8}
+body[data-ds-dark-theme] .ul-tone-systemPrompt{--ul-bucket:#9b96ff}
+body[data-ds-dark-theme] .ul-tone-user{--ul-bucket:#3ed08a}
+body[data-ds-dark-theme] .ul-tone-skill{--ul-bucket:#2fd6c2}
+body[data-ds-dark-theme] .ul-tone-toolResult{--ul-bucket:#7d95ff}
+body[data-ds-dark-theme] .ul-tone-toolDef{--ul-bucket:#f5b861}
+body[data-ds-dark-theme] .ul-tone-injected{--ul-bucket:#c184ff}
+body[data-ds-dark-theme] .ul-tone-assistant{--ul-bucket:#9aabff}
+body[data-ds-dark-theme] .ul-tone-output{--ul-bucket:#ff85c0}
 .ul-toolMini{display:flex;flex-wrap:wrap;gap:8px}
 .ul-foldGrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
 @media (max-width:1100px){.ul-foldGrid{grid-template-columns:1fr}}
@@ -272,6 +348,20 @@ window.__ModuleLoader__.load({
 `
 
     // ── shared bits ────────────────────────────────────────────────────────
+    /** Tiny line icon for a metric card (stroke follows currentColor). */
+    const CARD_ICON_D = {
+      requests: 'M4 9h16M4 15h16M10 3 8 21M16 3l-2 18', // '#'
+      tokens: 'M4 8c0-2.2 3.6-4 8-4s8 1.8 8 4-3.6 4-8 4-8-1.8-8-4Zm0 0v8c0 2.2 3.6 4 8 4s8-1.8 8-4V8', // db
+      input: 'M12 3v12M7 10l5 5 5-5M4 21h16', // ↓
+      output: 'M12 21V9M7 14l5-5 5 5M4 3h16', // ↑
+      hit: 'M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z', // ◎
+      speed: 'M13 2 4 14h7l-1 8 9-12h-7l1-8Z', // ⚡
+    }
+    const cardIcon = (d) => h('svg', {
+      width: 12, height: 12, viewBox: '0 0 24 24', fill: 'none',
+      stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true,
+    }, h('path', { d }))
+
     function LoadState({ state }) {
       if (state.loading) return h('div', { className: 'ul-note' }, t('loading'))
       if (state.error) {
@@ -282,9 +372,11 @@ window.__ModuleLoader__.load({
       return null
     }
 
-    function Card({ label, value, sub, title }) {
+    function Card({ label, value, sub, title, icon }) {
       return h('div', { className: 'ul-card' },
-        h('div', { className: 'ul-cardLabel' }, label),
+        h('div', { className: 'ul-cardLabel' },
+          icon ? h('span', { className: 'ul-cardIcon' }, icon) : null,
+          label),
         h('div', { className: 'ul-cardValue', title }, value),
         sub ? h('div', { className: 'ul-cardSub' }, sub) : null)
     }
@@ -1095,6 +1187,150 @@ window.__ModuleLoader__.load({
     }
     const fmtSec = (ms) => (typeof ms === 'number' && Number.isFinite(ms) ? `${(ms / 1000).toFixed(1)}s` : t('na'))
 
+    // ── the two live cards: current context + token stats (token-total) ────
+    // Fixed bucket order (context = first 7, composition = all 8); zero rows
+    // are kept so both cards' legends stay aligned. Each bucket carries its
+    // own hue via a --ul-bucket class (swatch/ring/segment/value read one var).
+    const BUCKET_ORDER = ['systemPrompt', 'user', 'skill', 'toolResult', 'toolDef', 'injected', 'assistant', 'output']
+    const BUCKET_LABEL = {
+      systemPrompt: 'bucketSystemPrompt', user: 'bucketUser', skill: 'bucketSkill',
+      toolResult: 'bucketToolResult', toolDef: 'bucketToolDef', injected: 'bucketInjected',
+      assistant: 'bucketAssistant', output: 'bucketOutput',
+    }
+    const BUCKET_TONE = {
+      systemPrompt: 'ul-tone-systemPrompt', user: 'ul-tone-user', skill: 'ul-tone-skill',
+      toolResult: 'ul-tone-toolResult', toolDef: 'ul-tone-toolDef', injected: 'ul-tone-injected',
+      assistant: 'ul-tone-assistant', output: 'ul-tone-output',
+    }
+    // rows in fixed order, missing buckets zero-filled, output excluded for
+    // the 7-bucket context card
+    const bucketRows = (buckets, keys) => keys.map((key) => ({
+      key, tokens: (buckets ?? []).find((b) => b && b.key === key)?.tokens ?? 0,
+    }))
+    const CONTEXT_KEYS = BUCKET_ORDER.filter((k) => k !== 'output')
+    const approxTok = (n) => `≈${fmtTok(n)}`
+
+    /** One legend row: swatch, name, share percent, approximate value. */
+    function UcLegendRow({ row, percent, suffix }) {
+      return h('div', { className: `ul-ucRow ${BUCKET_TONE[row.key]}` },
+        h('span', { className: 'ul-ucSwatch', 'aria-hidden': true }),
+        h('span', { className: 'ul-ucName' }, t(BUCKET_LABEL[row.key])),
+        h('span', { className: 'ul-ucPct' }, fmtPct(percent)),
+        h('span', { className: 'ul-ucVal', title: fmtInt(row.tokens) },
+          approxTok(row.tokens),
+          suffix ? h('span', { className: 'ul-ucSuffix' }, ` · ${suffix}`) : null))
+    }
+
+    // Ring geometry: a 116 px donut with a 15 px stroke (DonutSection style).
+    const UC_RING_SIZE = 116
+    const UC_RING_STROKE = 15
+    const UC_RING_R = (UC_RING_SIZE - UC_RING_STROKE) / 2 - 2
+    const UC_RING_C = 2 * Math.PI * UC_RING_R
+
+    /** Donut of bucket shares with the billed total in the middle. Segments
+     *  stroke one circle, offset by the running length; a hairline gap keeps
+     *  adjacent hues apart, and a segment never shrinks below 0.6 px. */
+    function UcRing({ rows, total, center, centerTitle, caption }) {
+      let offset = 0
+      return h('div', { className: 'ul-ucRingWrap' },
+        h('svg', { width: UC_RING_SIZE, height: UC_RING_SIZE, viewBox: `0 0 ${UC_RING_SIZE} ${UC_RING_SIZE}`, role: 'img', 'aria-label': caption },
+          h('circle', { className: 'ul-ucRingTrack', cx: UC_RING_SIZE / 2, cy: UC_RING_SIZE / 2, r: UC_RING_R, strokeWidth: UC_RING_STROKE }),
+          h('g', { transform: `rotate(-90 ${UC_RING_SIZE / 2} ${UC_RING_SIZE / 2})` },
+            rows.filter((row) => row.tokens > 0).map((row) => {
+              const length = total > 0 ? (row.tokens / total) * UC_RING_C : 0
+              const visible = Math.max(length - 1.2, 0.6)
+              const seg = h('circle', {
+                key: row.key, className: `ul-ucRingSeg ${BUCKET_TONE[row.key]}`,
+                cx: UC_RING_SIZE / 2, cy: UC_RING_SIZE / 2, r: UC_RING_R, strokeWidth: UC_RING_STROKE,
+                strokeDasharray: `${visible} ${UC_RING_C - visible}`,
+                strokeDashoffset: -offset,
+              })
+              offset += length
+              return seg
+            }))),
+        h('div', { className: 'ul-ucRingCenter' },
+          h('strong', { className: 'ul-ucRingTotal', title: centerTitle }, center),
+          h('span', { className: 'ul-ucRingCaption' }, caption)))
+    }
+
+    /** Left card: the live window's composition, its occupancy and the cap.
+     *  The headline is the billed prompt when the log has one (exact), else
+     *  the replay estimate (contextReading semantics from token-total). */
+    function ContextCard({ context }) {
+      const rows = bucketRows(context.buckets, CONTEXT_KEYS)
+      const drawn = rows.reduce((a, r) => a + r.tokens, 0)
+      const used = typeof context.promptTokens === 'number' && Number.isFinite(context.promptTokens)
+        ? context.promptTokens
+        : context.totalTokens
+      const hasWindow = typeof context.contextWindow === 'number' && context.contextWindow > 0
+      const capacity = hasWindow ? context.contextWindow : drawn
+      const occupied = capacity > 0 ? Math.min(100, (used / capacity) * 100) : 0
+      const windowPct = hasWindow && used >= 0 ? Math.min(100, (used / context.contextWindow) * 100) : null
+      const share = (n) => (drawn > 0 ? (n / drawn) * 100 : 0)
+      return h('section', { className: 'ul-ucCard' },
+        h('div', { className: 'ul-ucHead' },
+          h('div', { className: 'ul-ucTitle' }, t('currentContextTitle')),
+          h('span', { className: 'ul-ucModel', title: `${context.provider} / ${context.model}` },
+            [context.provider, context.model].filter(Boolean).join(' · ') || t('na'))),
+        h('div', { className: 'ul-ucBody' },
+          h('div', { className: 'ul-ucTotalRow' },
+            h('span', { className: 'ul-ucTotal', title: fmtInt(used) },
+              (hasWindow ? t('contextWindowTotal') : t('contextWindowTotalUnknown'))
+                .replace('{used}', fmtTok(used)).replace('{window}', hasWindow ? fmtTok(context.contextWindow) : '')),
+            windowPct !== null ? h('span', { className: 'ul-ucShare' },
+              h('b', null, fmtPct(windowPct)), ` ${t('contextUsedShort')}`) : null),
+          // One stacked strip across the whole window: a bucket's width is its
+          // share of the drawn content scaled by how full the window is, so
+          // the tinted run stops where "used" stops; the rest is free room.
+          h('div', { className: 'ul-ucBar' },
+            drawn > 0
+              ? rows.map((row) => row.tokens > 0
+                ? h('span', { key: row.key, className: `ul-ucBarSeg ${BUCKET_TONE[row.key]}`, style: { width: `${(share(row.tokens) * occupied) / 100}%` } })
+                : null)
+              : h('span', { className: 'ul-ucBarEmpty' })),
+          h('div', { className: 'ul-ucLegend' },
+            rows.map((row) => h(UcLegendRow, { key: row.key, row, percent: share(row.tokens) })))))
+    }
+
+    /** Right card: every request's replayed content plus the billed output.
+     *  Cache-hit badge comes from the exact totals, two decimals. */
+    function StatsCard({ composition }) {
+      const hasComp = composition !== null && composition !== undefined
+      const rows = bucketRows(composition?.buckets, BUCKET_ORDER)
+      const total = rows.reduce((a, r) => a + r.tokens, 0)
+      const billed = composition?.billedTokens ?? 0
+      const hit = hasComp
+        ? hitRateOf(composition.totals.inputTokens, composition.totals.cacheReadTokens, composition.totals.cacheWriteTokens)
+        : null
+      return h('section', { className: 'ul-ucCard' },
+        h('div', { className: 'ul-ucHead' },
+          h('div', { className: 'ul-ucTitle' }, t('statsTitle')),
+          hit !== null ? h('span', { className: 'ul-ucCache' },
+            `${t('statsCacheHit')} `, h('b', null, `${hit.toFixed(2)}%`)) : null),
+        h('div', { className: 'ul-ucBody' },
+          !hasComp
+            ? h('div', { className: 'ul-ucEmpty' }, t('statsEmpty'))
+            : h('div', { className: 'ul-ucStats' },
+                h(UcRing, { rows, total, center: fmtTok(billed), centerTitle: fmtInt(billed), caption: t('statsTotal') }),
+                h('div', { className: 'ul-ucLegend' },
+                  rows.map((row) => h(UcLegendRow, {
+                    key: row.key, row, percent: total > 0 ? (row.tokens / total) * 100 : 0,
+                    suffix: row.key === 'output' ? t('statsIncludesThinking') : null,
+                  }))))))
+    }
+
+    /** The pair: context on the left, stats on the right. No context →
+     *  single stats card; neither → nothing at all. */
+    function UsageCards({ context, composition }) {
+      if (context == null) {
+        if (composition == null) return null
+        return h('div', { className: 'ul-svGrid' }, h(StatsCard, { composition }))
+      }
+      return h('div', { className: 'ul-svGrid' },
+        h(ContextCard, { context }),
+        h(StatsCard, { composition }))
+    }
+
     function SessionUsageView({ sessionId }) {
       const { data, error, loading, refresh, updatedAt } = useSessionUsage(sessionId)
       // Freshness header: the view polls continuously, so it always shows a
@@ -1114,6 +1350,7 @@ window.__ModuleLoader__.load({
         return h('div', { className: 'ul-session' },
           h('style', null, CSS),
           head,
+          h('div', { className: 'ul-scopeNote' }, t('svScope')),
           loading || error
             ? h(LoadState, { state: { loading, error, retry: refresh } })
             : h('div', { className: 'ul-note' }, t('empty')))
@@ -1130,6 +1367,7 @@ window.__ModuleLoader__.load({
       return h('div', { className: 'ul-session' },
         h('style', null, CSS),
         head,
+        h('div', { className: 'ul-scopeNote' }, t('svScope')),
         error ? h('div', { className: 'ul-error' },
           h('span', null, `${t('loadError')}: ${error.message}`),
           h('button', { type: 'button', onClick: refresh }, t('retry'))) : null,
@@ -1137,31 +1375,56 @@ window.__ModuleLoader__.load({
         h('section', { className: 'ul-sec' },
           h('div', { className: 'ul-secTitle' }, t('svTotals')),
           h('div', { className: 'ul-cards' },
-            h(Card, { label: t('requests'), value: fmtInt(d.requests), sub: `${t('failures')} ${fmtInt(d.failures)} · ${failRate}%` }),
-            h(Card, { label: t('svTokens'), value: fmtTok(d.totals.tokens), title: fmtInt(d.totals.tokens) }),
-            h(Card, { label: t('inputTok'), value: fmtTok(d.totals.inputTokens), title: fmtInt(d.totals.inputTokens) }),
-            h(Card, { label: t('outputTok'), value: fmtTok(d.totals.outputTokens), title: fmtInt(d.totals.outputTokens) }),
-            h(Card, { label: t('cacheHit'), value: hit === null ? t('na') : fmtPct(hit) }),
-            h(Card, { label: t('decodeSpeed'), value: fmtSpeed(d.tokensPerSecond), sub: `${t('avgTtft')} ${fmtSec(d.avgFirstTokenMs)}` }))),
+            h(Card, {
+              label: t('requests'), icon: cardIcon(CARD_ICON_D.requests),
+              value: fmtInt(d.requests), sub: `${t('failures')} ${fmtInt(d.failures)} · ${failRate}%`,
+            }),
+            h(Card, {
+              label: t('svTokens'), icon: cardIcon(CARD_ICON_D.tokens),
+              value: fmtTok(d.totals.tokens), title: fmtInt(d.totals.tokens),
+              sub: `${fmtInt(d.totals.tokens)} ${t('sTok')}`,
+            }),
+            h(Card, {
+              label: t('inputTok'), icon: cardIcon(CARD_ICON_D.input),
+              value: fmtTok(d.totals.inputTokens), title: fmtInt(d.totals.inputTokens), sub: fmtInt(d.totals.inputTokens),
+            }),
+            h(Card, {
+              label: t('outputTok'), icon: cardIcon(CARD_ICON_D.output),
+              value: fmtTok(d.totals.outputTokens), title: fmtInt(d.totals.outputTokens), sub: fmtInt(d.totals.outputTokens),
+            }),
+            h(Card, {
+              label: t('cacheHit'), icon: cardIcon(CARD_ICON_D.hit),
+              value: hit === null ? t('na') : h('span', { className: 'ul-hit' }, fmtPct(hit)),
+              sub: hit === null ? null : `${fmtTok(d.totals.cacheReadTokens)} ${t('svCacheHitShort')}`,
+            }),
+            h(Card, {
+              label: t('decodeSpeed'), icon: cardIcon(CARD_ICON_D.speed),
+              value: d.tokensPerSecond == null ? t('na') : `${Math.round(d.tokensPerSecond)} ${t('svTokPerSec')}`,
+              sub: `${t('avgTtft')} ${fmtSec(d.avgFirstTokenMs)}`,
+            }))),
         d.degraded ? h('div', { className: 'ul-banner' }, t('svDegraded')) : null,
         // sub-session table (children[], KV-sourced: works even degraded)
         h('section', { className: 'ul-sec' },
-          h('div', { className: 'ul-secTitle' }, t('svChildren')),
+          h('div', { className: 'ul-secTitle' }, t('svChildren'),
+            h('span', { className: 'ul-count' }, fmtInt(children.length))),
           children.length === 0
             ? h('div', { className: 'ul-note' }, t('svNoChildren'))
             : h(React.Fragment, null,
                 h('div', { className: 'ul-table ul-chHead' },
                   h('span', null, t('sName')), h('span', null, t('sReq')), h('span', null, t('sTok')),
-                  h('span', null, t('svHit')), h('span', null, t('sKind'))),
+                  h('span', null, t('svHit')), h('span', null, t('avgTtft')), h('span', null, t('svTokSpeed')), h('span', null, t('sKind'))),
                 children.map((c) => h('div', { key: c.id, className: 'ul-table ul-chRow' },
                   h('span', { className: 'ul-cellName', title: c.name || c.id }, c.name || c.id),
                   h('span', { className: 'ul-cellNum2' }, fmtInt(c.requests)),
                   h('span', { className: 'ul-cellNum2' }, fmtTok(c.tokens)),
-                  h('span', { className: 'ul-cellNum2' }, hitOf(c) === null ? t('na') : fmtPct(hitOf(c))),
+                  h('span', { className: 'ul-cellNum2 ul-hit' }, hitOf(c) === null ? t('na') : fmtPct(hitOf(c))),
+                  h('span', { className: 'ul-cellNum2' }, fmtSec(c.avgFirstTokenMs)),
+                  h('span', { className: 'ul-cellNum2' }, c.tokensPerSecond == null ? t('na') : fmtSpeed(c.tokensPerSecond)),
                   h('span', null, t(KIND_LABEL[c.kind] || 'kindMain')))))),
         // per-model table (byModel[], needs SQLite detail → empty degraded)
         h('section', { className: 'ul-sec' },
-          h('div', { className: 'ul-secTitle' }, t('svModels')),
+          h('div', { className: 'ul-secTitle' }, t('svModels'),
+            h('span', { className: 'ul-count' }, fmtInt(byModel.length))),
           byModel.length === 0
             ? h('div', { className: 'ul-note' }, t('svNoModels'))
             : h(React.Fragment, null,
@@ -1170,14 +1433,24 @@ window.__ModuleLoader__.load({
                   h('span', null, t('inputTok')), h('span', null, t('outputTok')),
                   h('span', null, t('cacheReadTok')), h('span', null, t('cacheWriteTok')),
                   h('span', null, t('svHit'))),
-                byModel.map((m) => h('div', { key: `${m.provider}/${m.model}`, className: 'ul-table ul-mdRow' },
-                  h('span', { className: 'ul-cellName', title: m.model }, m.model || t('na')),
-                  h('span', { className: 'ul-cellNum2' }, fmtInt(m.requests)),
-                  h('span', { className: 'ul-cellNum2' }, fmtTok(m.inputTokens)),
-                  h('span', { className: 'ul-cellNum2' }, fmtTok(m.outputTokens)),
-                  h('span', { className: 'ul-cellNum2' }, fmtTok(m.cacheReadTokens)),
-                  h('span', { className: 'ul-cellNum2' }, fmtTok(m.cacheWriteTokens)),
-                  h('span', { className: 'ul-cellNum2' }, hitOf(m) === null ? t('na') : fmtPct(hitOf(m))))))),
+                byModel.map((m) => {
+                  // display name when the wire carries one, route id otherwise
+                  const name = (typeof m.name === 'string' && m.name.trim()) ? m.name : (m.model || t('na'))
+                  // logo letter = first letter/digit (so "(unknown)" reads "U", not "(")
+                  const letter = ((name.match(/[a-z0-9]/i) || ['?'])[0]).toUpperCase()
+                  return h('div', { key: `${m.provider}/${m.model}`, className: 'ul-table ul-mdRow' },
+                    h('span', { className: 'ul-mdNameCell' },
+                      h('span', { className: 'ul-mdLogo', 'aria-hidden': true }, letter),
+                      h('span', { className: 'ul-cellName', title: m.model }, name)),
+                    h('span', { className: 'ul-cellNum2' }, fmtInt(m.requests)),
+                    h('span', { className: 'ul-cellNum2' }, fmtTok(m.inputTokens)),
+                    h('span', { className: 'ul-cellNum2' }, fmtTok(m.outputTokens)),
+                    h('span', { className: 'ul-cellNum2' }, fmtTok(m.cacheReadTokens)),
+                    h('span', { className: 'ul-cellNum2' }, fmtTok(m.cacheWriteTokens)),
+                    h('span', { className: 'ul-cellNum2 ul-hit' }, hitOf(m) === null ? t('na') : fmtPct(hitOf(m))))
+                }))),
+        // the two live cards between the tables and the tool chips
+        h(UsageCards, { context: d.context ?? null, composition: d.composition ?? null }),
         // tool chips (our extra; token-total has no equivalent)
         tools.length === 0 ? null : h('section', { className: 'ul-sec' },
           h('div', { className: 'ul-secTitle' }, t('svTools')),
