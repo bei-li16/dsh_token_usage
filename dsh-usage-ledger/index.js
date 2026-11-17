@@ -156,37 +156,57 @@ export function apply(ctx, rawConfig = {}) {
   }
 
   // /reset rebuild pipeline: concurrent callers coalesce into one in-flight
-  // run instead of racing it. Live sessions are watermarked at wipe time (see
-  // dsh-token-total's resetAndRescan for why the boundary must be re-sampled);
-  // the watermark is max(persisted end, live high-water + 1) so the replay
-  // prefix also covers events counted live but not yet drained to the log
-  // (drain-gap fix, 2026-11-17 — see resetReplayBoundary).
+  // run instead of racing it. Live sessions are watermarked by a PROVIDER
+  // evaluated inside the store's serial reset job — at job time,
+  // immediately before the wipe (0.1.5 sub-second-window fix). The watermark
+  // is max(persisted end, live high-water + 1) so the replay prefix also
+  // covers events counted live but not yet drained to the log (drain-gap
+  // fix, 2026-11-17 — see resetReplayBoundary).
   let resetInFlight = /** @type {Promise<void>|null} */ (null)
   const isRebuilding = () => resetInFlight !== null
   const resetAndRescan = () => {
     if (resetInFlight) return resetInFlight
     resetInFlight = (async () => {
+      // Rare fallback only (handle.seq not a usable number): the store's last
+      // live watermarks. Prefetching before enqueue is safe — it is NOT part
+      // of the tightness argument below.
       const previous = await store.liveSequences()
-      const boundaries = new Map()
-      for (const handle of ctx.sessions.list()) {
-        const seq = handle.seq
-        // Persisted end: handle.seq (the JsonlSessionHandle's persisted
-        // length) when usable; else the store's last live watermark; else -1.
-        const persisted = typeof seq === 'number' && Number.isFinite(seq) && seq >= 0
-          ? seq
-          : previous.get(handle.id)
-        // Drain-gap fix (2026-11-17): events already observed live but still
-        // in the host's drain buffer (seq >= handle.seq) were counted into
-        // the KV rollups that store.reset() is about to wipe, and the live
-        // chain will never re-observe them — only the replay prefix can
-        // re-land them, so the boundary must also cover the live high-water
-        // (see resetReplayBoundary for the exclusive/inclusive +1 detail).
-        boundaries.set(handle.id, resetReplayBoundary(
-          typeof persisted === 'number' ? persisted : -1,
-          collector.liveHighSeqOf(handle.id),
-        ))
-      }
-      await store.reset(boundaries)
+      // Tightness (0.1.5): the provider below runs INSIDE the store's serial
+      // reset job, so sampling and wipe are adjacent in queue order — no
+      // event can slip between them:
+      //  - recordRequests enqueued BEFORE the reset job (their events were
+      //    observed before sampling) already applied their KV contributions,
+      //    which the wipe is about to clear; their seq ≤ the liveHighSeq the
+      //    provider reads (the collector raises liveHighSeq synchronously
+      //    before dispatching), so the max(persisted, liveHigh+1) boundary
+      //    covers them → the rescan replays them back.
+      //  - events observed only AFTER the provider ran enqueue their
+      //    recordRequests BEHIND the reset job → they land on the fresh
+      //    ledger; their seq > liveHighSeq@provider ⇒ ≥ boundary, so the
+      //    rescan's live-owned skip ([boundary, ∞)) leaves them to the live
+      //    count — exactly once.
+      await store.reset(() => {
+        const boundaries = new Map()
+        for (const handle of ctx.sessions.list()) {
+          const seq = handle.seq
+          // Persisted end: handle.seq (the JsonlSessionHandle's persisted
+          // length) when usable; else the store's last live watermark; else -1.
+          const persisted = typeof seq === 'number' && Number.isFinite(seq) && seq >= 0
+            ? seq
+            : previous.get(handle.id)
+          // Drain-gap fix (2026-11-17): events already observed live but still
+          // in the host's drain buffer (seq >= handle.seq) were counted into
+          // the KV rollups that the wipe is about to clear, and the live
+          // chain will never re-observe them — only the replay prefix can
+          // re-land them (see resetReplayBoundary for the exclusive/inclusive
+          // +1 detail).
+          boundaries.set(handle.id, resetReplayBoundary(
+            typeof persisted === 'number' ? persisted : -1,
+            collector.liveHighSeqOf(handle.id),
+          ))
+        }
+        return boundaries
+      })
       await rescan()
     })().finally(() => {
       resetInFlight = null

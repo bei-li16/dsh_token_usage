@@ -56,4 +56,9 @@
   high-watermarks read behind. The sweep × prune interaction is now safe in
   both directions: a caught-up session costs one read-only pass, and a
   behind or stale-marked session's full re-replay is strictly idempotent.
-  `/status` reports the anchor count as `anchorRows`.
+  `/status` reports the anchor count as `anchorRows`. Since 0.1.5 the
+  `/reset` live-session boundary watermarks are sampled inside the store's
+  serial-queue reset job — at job time, immediately before the wipe —
+  closing the sub-second sampling-to-wipe window in which a live-observed
+  event could be wiped, yet skipped by the rescan (seq ≥ boundary) and
+  never re-observed by the live chain.

@@ -320,6 +320,55 @@ async function main() {
   store2.recordRequest({ id: 's1:1:1:0', sessionId: 's1', parentId: null, kind: 'main', turn: 1, step: 1, attempt: 0, time: at(today, 3), finishedAt: at(today, 3) + 1200, provider: 'openai', model: 'gpt-x', status: 'completed', inputTokens: 100, outputTokens: 50, cacheReadTokens: 20, cacheWriteTokens: 10, firstTokenMs: 200, decodeMs: 1000 })
   await store2.flush()
   assert.equal((await store2.summary()).tokens, 180, 'reset 清 delta 锚：重录事实从零起算（100+50+20+10）')
+
+  // ── reset provider（0.1.5）：边界采样在串行队列 job 内、wipe 之前求值 ────
+  // 入队链是微任务串行：reset() 同步返回（入队完成）后主代码先置 flag，job 求值
+  // provider 时 flag 必为 true —— 断言确定性成立，证明求值发生在 job 执行时
+  // 而非 reset 调用时（亚秒采样窗口闭合的合同面）。
+  let flag = false
+  const providerDone = store2.reset(() => {
+    assert.ok(flag, 'provider 在 job 执行时求值（而非 reset 调用时）')
+    return new Map([['s1', 9]])
+  })
+  assert.equal(flag, false, 'reset() 入队即返回，provider 未在调用时求值')
+  flag = true
+  await providerDone
+  const providerCursor = await store2.cursorState()
+  assert.deepEqual(providerCursor.cursor.liveFirstSeq, { s1: 9 }, 'provider 结果写入 liveFirstSeq（与传 Map 等价）')
+  assert.deepEqual(providerCursor.cursor.backfilledSessions, [], 'provider reset 清空 backfilled')
+  assert.equal((await store2.summary()).tokens, 0, 'provider reset 照常清空 rollup')
+  // 异步 provider 同样支持（合同允许同步或异步）。
+  await store2.reset(async () => new Map([['s2', 4]]))
+  assert.deepEqual((await store2.cursorState()).cursor.liveFirstSeq, { s2: 4 }, '异步 provider 等价写入 liveFirstSeq')
+
+  // 恢复迁移块前提（既有 180）：上面两次 provider reset 清掉了它，重录同一事实。
+  store2.recordRequest({ id: 's1:1:1:0', sessionId: 's1', parentId: null, kind: 'main', turn: 1, step: 1, attempt: 0, time: at(today, 3), finishedAt: at(today, 3) + 1200, provider: 'openai', model: 'gpt-x', status: 'completed', inputTokens: 100, outputTokens: 50, cacheReadTokens: 20, cacheWriteTokens: 10, firstTokenMs: 200, decodeMs: 1000 })
+  await store2.flush()
+  assert.equal((await store2.summary()).tokens, 180, 'provider 场景后重建 180 基准（迁移块前提）')
+
+  // ── provider 抛错：wipe 照常完成、空边界安全回退、observational warn ────
+  const throwDomain = makeFakeStorageDomain()
+  const warns = []
+  const storeT = makeStore({
+    storageDomain: throwDomain,
+    config: { retentionDays: 30, factsDbPath: join(tmp, 'throw-facts.db') },
+    logger: { warn: (m) => warns.push(m), info: () => {} },
+  })
+  await storeT.ready()
+  storeT.recordRequest({ id: 't1:1:1:0', sessionId: 't1', parentId: null, kind: 'main', turn: 1, step: 1, attempt: 0, time: at(today, 5), finishedAt: at(today, 5) + 100, provider: 'p', model: 'm', status: 'completed', inputTokens: 7, outputTokens: 3 })
+  await storeT.flush()
+  assert.equal((await storeT.summary()).tokens, 10, 'provider 抛错用例前奏：先记 10')
+  await storeT.reset(() => { throw new Error('provider boom') })
+  assert.equal((await storeT.summary()).tokens, 0, 'provider 抛错：wipe 仍完成')
+  const throwCursor = await storeT.cursorState()
+  assert.deepEqual(throwCursor.cursor.liveFirstSeq, {}, 'provider 抛错：回退空边界（活会话下次 backfill 被 defer，安全方向）')
+  assert.deepEqual(throwCursor.cursor.backfilledSessions, [], 'provider 抛错：backfilled 照常清空')
+  const throwStatus = storeT.status()
+  assert.equal(throwStatus.recordFailures, 0, 'provider 抛错不计 recordFailures（防御路径处理，job 未失败）')
+  assert.equal(throwStatus.degraded, false, 'provider 抛错不影响降级状态')
+  assert.equal(throwStatus.backendError, null, 'backendError 不受 provider 失败影响')
+  assert.ok(warns.some((m) => m.includes('provider')), 'provider 失败按 observational 原则计入 logger.warn')
+  await storeT.dispose()
   await store2.dispose()
 
   // ── 0.1.2 → 0.1.3 升级迁移：明细行在、锚表为空（旧库）→ open 补种 → 幂等保持 ──

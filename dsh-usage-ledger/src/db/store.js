@@ -50,8 +50,13 @@ const SESSION_RECORDS_CAP = 500
  *  v5（2026-11-17）：record* 的 delta 基准改为永久锚（request_anchor /
  *  tool_anchor / turn_anchor，prune 永不删除）——v4 实例没有锚读写语义，
  *  若不升代，toggle 升级会继续复用旧实例，锚代码永不激活（0.1.3 发布
- *  验收实测：旧实例上的 sweep 复现 KV 双计，/status 无 anchorRows 字段）。 */
-export const STORE_VERSION = 5
+ *  验收实测：旧实例上的 sweep 复现 KV 双计，/status 无 anchorRows 字段）。
+ *  v6（2026-11-17，0.1.5）：reset(boundaries) 公共契约变更——除 Map 外接受
+ *  边界 provider 函数（在串行队列 job 内、wipe 之前求值，index.js 的
+ *  /reset 借此把边界采样移入 job 以关闭亚秒采样窗口）。若不升代，toggle
+ *  升级会继续复用旧 v5 实例——旧实例把 provider 函数当 Map 用，reset 语义
+ *  直接坏掉（与 v5 不升代的教训同类）。 */
+export const STORE_VERSION = 6
 
 /** 错误对象 → 单行安全文本（status.backendError 用）。 */
 function sanitizeError(err) {
@@ -403,6 +408,25 @@ export function createLedgerStore({ storageDomain, config, logger }) {
 
     reset(boundaries) {
       return enqueue(async () => {
+        // Boundary provider (0.1.5): the live-session boundary watermarks are
+        // sampled INSIDE this job — at job time, immediately before the wipe.
+        // The serial queue guarantees queue order == execution order, so a
+        // provider evaluated here sees every record* enqueued before the
+        // reset job already applied (and about to lose) its KV contribution,
+        // and any event observed only later enqueues behind the wipe. Map
+        // stays accepted (backward compatible); a failing provider must
+        // NEVER abort the wipe/rebuild — fall back to empty boundaries (a
+        // live session without a boundary is deferred by the next backfill,
+        // the safe direction), observational via logger.warn.
+        let sampled = boundaries
+        if (typeof boundaries === 'function') {
+          try {
+            sampled = await boundaries()
+          } catch (err) {
+            log.warn(`[dsh-usage-ledger] reset boundary provider failed, using empty boundaries: ${sanitizeError(err)}`)
+            sampled = new Map()
+          }
+        }
         if (sqlite) sqlite.clearAll()
         recentFacts.clear()
         if (kv) {
@@ -410,8 +434,8 @@ export function createLedgerStore({ storageDomain, config, logger }) {
             await table.deleteMany([...table.keys()])
           }
           const liveFirstSeq = {}
-          if (boundaries instanceof Map) {
-            for (const [id, seq] of boundaries) {
+          if (sampled instanceof Map) {
+            for (const [id, seq] of sampled) {
               if (typeof id === 'string' && typeof seq === 'number' && Number.isFinite(seq)) {
                 liveFirstSeq[id] = Math.round(seq)
               }

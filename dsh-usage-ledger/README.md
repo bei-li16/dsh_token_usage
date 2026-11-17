@@ -72,6 +72,11 @@ interferes with turns. Do not enable together with `dsh-token-total`.
   stale-marked session's full re-replay is strictly idempotent. Facts whose
   detail was pruned before 0.1.3 have no anchor; they are protected by the
   `lastSeq` high-water marks instead, and `/reset` re-derives everything.
+  Since 0.1.5 the live-session boundary watermarks for `/reset` are sampled
+  inside the store's serial-queue reset job — at job time, immediately
+  before the wipe — closing the sub-second sampling-to-wipe window in which
+  a live-observed event could be wiped, yet skipped by the rescan
+  (seq ≥ boundary) and never re-observed by the live chain.
 
 ## Configuration
 
