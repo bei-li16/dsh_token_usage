@@ -46,8 +46,12 @@ const SESSION_RECORDS_CAP = 500
 /** Store 代码代际：index.js 的全局单例发现代际不符时 dispose 旧实例重建
  *  （插件 toggle 即可升级 store，无需重启应用）。
  *  v4：新增 sessionHighSeq / markSessionSeq（disable-enable 窗口断档回放
- *  依赖的会话高水位）。 */
-export const STORE_VERSION = 4
+ *  依赖的会话高水位）。
+ *  v5（2026-11-17）：record* 的 delta 基准改为永久锚（request_anchor /
+ *  tool_anchor / turn_anchor，prune 永不删除）——v4 实例没有锚读写语义，
+ *  若不升代，toggle 升级会继续复用旧实例，锚代码永不激活（0.1.3 发布
+ *  验收实测：旧实例上的 sweep 复现 KV 双计，/status 无 anchorRows 字段）。 */
+export const STORE_VERSION = 5
 
 /** 错误对象 → 单行安全文本（status.backendError 用）。 */
 function sanitizeError(err) {
