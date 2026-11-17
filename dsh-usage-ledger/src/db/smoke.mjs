@@ -123,6 +123,8 @@ async function main() {
   assert.ok(approx(summary.cacheHitRate, (20 / 1200) * 100), 'summary.cacheHitRate')
   assert.ok(approx(summary.errorRate, (2 / 6) * 100), 'summary.errorRate')
   assert.ok(approx(summary.tokensPerSecond, 50), 'summary.tokensPerSecond')
+  assert.equal(summary.todayTokens, 525, 'summary.todayTokens（今日 4 请求行：525）')
+  assert.equal(summary.todayRequests, 4, 'summary.todayRequests')
   assert.equal(summary.degraded, false, 'summary.degraded')
 
   // ── daily（day 粒度 + model 分组 + 零填充）─────────────────────────────

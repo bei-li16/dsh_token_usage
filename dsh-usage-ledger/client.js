@@ -26,7 +26,7 @@ window.__ModuleLoader__.load({
       loadError: '加载失败', retry: '重试', empty: '暂无数据', na: '—',
       degraded: '明细数据不可用，以下为永久汇总（KV 模式）。',
       backfill: '正在回填历史数据',
-      sumTitle: '总览', totalTokens: '总 tokens', requests: '请求数', failures: '失败',
+      sumTitle: '总览', totalTokens: '总 tokens', todayTokens: '今日消耗', requests: '请求数', failures: '失败',
       errorRate: '错误率', cacheHit: '缓存命中率', avgTtft: '平均首 token',
       decodeSpeed: '解码速度', streak: '连续活跃', streakUnit: '天', peakDay: '峰值日',
       activeDays: '活跃天数', inputTok: '输入', outputTok: '输出',
@@ -52,7 +52,7 @@ window.__ModuleLoader__.load({
       loadError: 'Failed to load', retry: 'Retry', empty: 'No data yet', na: '—',
       degraded: 'Detail unavailable; showing permanent rollup only (KV mode).',
       backfill: 'Backfilling history',
-      sumTitle: 'Overview', totalTokens: 'Total tokens', requests: 'Requests', failures: 'Failures',
+      sumTitle: 'Overview', totalTokens: 'Total tokens', todayTokens: 'Today', requests: 'Requests', failures: 'Failures',
       errorRate: 'Error rate', cacheHit: 'Cache hit rate', avgTtft: 'Avg first token',
       decodeSpeed: 'Decode speed', streak: 'Active streak', streakUnit: 'd', peakDay: 'Peak day',
       activeDays: 'Active days', inputTok: 'Input', outputTok: 'Output',
@@ -181,7 +181,10 @@ window.__ModuleLoader__.load({
 .ul-cardValue{font-size:18px;font-weight:600;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ul-cardSub{font-size:11px;color:var(--dsw-alias-label-tertiary);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ul-band{display:flex;flex-wrap:wrap;box-sizing:border-box;border:1px solid var(--dsw-alias-border-l2);border-radius:10px;background:var(--dsw-alias-bg-layer-1)}
-.ul-bandItem{flex:1 1 118px;min-width:0;box-sizing:border-box;padding:12px 14px;position:relative;cursor:default}
+/* Items hug their content (no per-cell trailing void); the filler eats the
+   row's leftover width so dividers stay tight against real values. */
+.ul-band::after{content:'';flex:1 1 auto}
+.ul-bandItem{flex:0 0 auto;min-width:0;box-sizing:border-box;padding:12px 18px;position:relative;cursor:default}
 .ul-bandItem+.ul-bandItem{border-left:1px solid var(--dsw-alias-border-l2)}
 .ul-bandValue{font-size:19px;font-weight:600;color:var(--dsw-alias-label-primary);font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ul-bandLabel{font-size:12px;color:var(--dsw-alias-label-tertiary);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -331,6 +334,10 @@ window.__ModuleLoader__.load({
             tokRow(PALETTE[1], t('outputTok'), s.outputTokens),
             tokRow(PALETTE[4], t('cacheReadTok'), s.cacheReadTokens),
             tokRow(PALETTE[2], t('cacheWriteTok'), s.cacheWriteTokens),
+          ] }),
+          h(BandItem, { label: t('todayTokens'), value: fmtTok(s.todayTokens ?? 0), detail: [
+            tokRow(null, t('todayTokens'), s.todayTokens ?? 0),
+            { color: null, name: t('requests'), value: fmtInt(s.todayRequests ?? 0) },
           ] }),
           h(BandItem, { label: t('requests'), value: fmtInt(s.requests), detail: [
             { color: null, name: t('requests'), value: fmtInt(s.requests) },

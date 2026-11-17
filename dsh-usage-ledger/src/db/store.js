@@ -533,6 +533,8 @@ export function createLedgerStore({ storageDomain, config, logger }) {
       let turns = 0; let toolCalls = 0; let activeDays = 0
       let firstTokenMsSum = 0; let firstTokenCount = 0; let decodeMsSum = 0; let decodeTokens = 0
       let firstDay = null; let lastDay = null; let peakDay = null
+      const today = todayKey()
+      let todayTokens = 0; let todayRequests = 0
       const activeByDay = new Map()
       for (const row of rows) {
         tokens += row.tokens; inputTokens += row.inputTokens; outputTokens += row.outputTokens
@@ -541,6 +543,7 @@ export function createLedgerStore({ storageDomain, config, logger }) {
         requests += row.requests; failures += row.failures; turns += row.turns; toolCalls += row.toolCalls
         firstTokenMsSum += row.firstTokenMsSum; firstTokenCount += row.firstTokenCount
         decodeMsSum += row.decodeMsSum; decodeTokens += row.decodeTokens
+        if (row.day === today) { todayTokens = row.tokens; todayRequests = row.requests }
         const active = row.tokens > 0 || row.requests > 0
         if (active) activeDays += 1
         activeByDay.set(row.day, active)
@@ -552,7 +555,7 @@ export function createLedgerStore({ storageDomain, config, logger }) {
       }
       // streak：今天活跃则从今天往回数，否则从昨天往回数。
       let streakDays = 0
-      let cursorDay = todayKey()
+      let cursorDay = today
       if (!activeByDay.get(cursorDay)) cursorDay = dayMinus(cursorDay, 1)
       while (activeByDay.get(cursorDay)) {
         streakDays += 1
@@ -561,6 +564,7 @@ export function createLedgerStore({ storageDomain, config, logger }) {
       return {
         tokens, inputTokens, outputTokens, reasoningTokens, cacheReadTokens, cacheWriteTokens,
         requests, failures, turns, toolCalls, activeDays, firstDay, lastDay, peakDay, streakDays,
+        todayTokens, todayRequests,
         avgFirstTokenMs: firstTokenCount > 0 ? Math.round(firstTokenMsSum / firstTokenCount) : null,
         cacheHitRate: cacheHitRateOf(inputTokens, cacheReadTokens, cacheWriteTokens),
         errorRate: requests > 0 ? (failures / requests) * 100 : null,

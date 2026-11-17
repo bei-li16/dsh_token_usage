@@ -416,6 +416,8 @@ export function emptySessionIndexRow(id) {
  * @property {{day: string, tokens: number}|null} peakDay
  * @property {number} streakDays      consecutive active days ending today
  *                                    (today inactive → streak ending yesterday)
+ * @property {number} todayTokens     Σ computedTotal of the local day row for today (0 when inactive)
+ * @property {number} todayRequests   request count of the local day row for today (0 when inactive)
  * @property {number|null} avgFirstTokenMs
  * @property {number|null} cacheHitRate    0..100, cacheRead/(input+cacheRead+cacheWrite)
  * @property {number|null} errorRate       0..100, failures/requests
