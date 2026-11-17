@@ -13,6 +13,12 @@
  * off-window gap catch-up on first live observation, dispose tail
  * catch-up, and flush({dropRunning}).
  *
+ * Fix regressions (2026-11-17): the startup reconciliation sweep heals
+ * cursor-marked dead sessions (offline tail hole / zero-mark victim)
+ * without touching live or unmarked sessions. The inherited prefix stays
+ * skipped UNCONDITIONALLY — host invariant cut > 0 ⟺ seeded fork (seeded
+ * forks carry no parentSession; see the j1/k1/j2 guard below).
+ *
  * Run: node src/collector/smoke.mjs   (exit 0 = pass)
  */
 
@@ -306,12 +312,21 @@ async function main() {
   eq(store.calls.pruned, 1, 'prune called once at the end')
 
   // ── second pass: cursor skips everything ──
+  // The rows below are what pass 1 leaves behind (markSessionSeq advanced
+  // each existing row to its replayed max): the 2026-11-17 reconciliation
+  // sweep must then find every dead cursor session caught up and write
+  // nothing (one log read each, zero replays).
   const store2 = mockStore()
   store2.setCursor({ backfilledSessions: ['s1', 's2', 's3'], liveFirstSeq: {} })
+  store2.sessions.set('s1', { lastSeq: 23 })
+  store2.sessions.set('s2', { lastSeq: 4 })
+  store2.sessions.set('s3', { lastSeq: 3 })
   const collector2 = new LedgerCollector({ store: store2, concurrency: 4 })
   await collector2.backfill(mockPersistence(logs), noLiveSessions)
   eq(store2.calls.request.length, 0, 'second pass with full cursor replays nothing')
   eq(collector2.status.total, 0, 'second pass total 0')
+  eq(collector2.status.sweep?.checked, 3, 'second pass sweep checks the dead cursor sessions')
+  eq(collector2.status.sweep?.replayed, 0, 'second pass sweep: caught up ⇒ nothing replayed')
 
   // ── live path: boundary mark, upsert-by-id, disposer ──
   const store3 = mockStore()
@@ -423,7 +438,9 @@ async function main() {
   const collectorF = new LedgerCollector({ store: storeF, concurrency: 1 })
   const handlersF = new Map()
   collectorF.start({ on(name, fn) { handlersF.set(name, fn); return () => handlersF.delete(name) } })
-  await collectorF.backfill(mockPersistence(logsF), noLiveSessions) // cursor owns f1 → nothing replayed
+  // f1 is LIVE (it produces a live event below) — the 2026-11-17 sweep's
+  // no-go zone is exactly live sessions; its gap stays the live path's.
+  await collectorF.backfill(mockPersistence(logsF), { list: () => [{ id: 'f1' }] }) // cursor owns f1 → nothing replayed
   handlersF.get('session/event')({ id: 'f1', header: {} }, ev(20, T0 + 2000, 'turn/end', { turn: 3, reason: 'interrupted' }))
   await new Promise((resolve) => setTimeout(resolve, 50)) // fire-and-forget catch-up settles
   const fIds = storeF.calls.request.map((r) => r.id)
@@ -453,7 +470,8 @@ async function main() {
   const collectorG = new LedgerCollector({ store: storeG, concurrency: 1 })
   const handlersG = new Map()
   collectorG.start({ on(name, fn) { handlersG.set(name, fn); return () => handlersG.delete(name) } })
-  await collectorG.backfill(mockPersistence(logsG), noLiveSessions) // cursor owns g1 → nothing replayed
+  // g1 is LIVE until its dispose below — the sweep must leave it alone.
+  await collectorG.backfill(mockPersistence(logsG), { list: () => [{ id: 'g1' }] }) // cursor owns g1 → nothing replayed
   handlersG.get('session/disposed')({ id: 'g1', header: {} })
   await new Promise((resolve) => setTimeout(resolve, 50))
   const gIds = storeG.calls.request.map((r) => r.id)
@@ -497,6 +515,115 @@ async function main() {
   await collectorI.backfill(mockPersistence(logsI), { list: () => [{ id: 'i1' }] })
   eq(storeI.sessions.get('i1')?.lastSeq, 6, 'reset-rescan window: prefix replay + ungated live claim covers the live span')
   ok(collectorI.liveContiguous.has('i1'), 'reset-rescan window: session marked contiguous after prefix replay')
+
+  // ── regression guard (2026-11-17): the inherited prefix is skipped
+  //    UNCONDITIONALLY — host invariant (dsh-session-persistence-jsonl,
+  //    toHeaderLine): "seeded session header requires an inherited event
+  //    count" / "unseeded session header inherited event count must be 0",
+  //    i.e. cut > 0 ⟺ isSeeded. A seeded fork child carries NO parentSession
+  //    (session-6519d23a: isSeeded, no parentSession, cut=691, its [0,691)
+  //    prefix fully overlaps parent session-2841fa4b) — gating the skip on
+  //    header.parentSession would double-count ~6.3M. Unseeded sessions
+  //    (resume included) report cut = 0: the skip is a no-op and the whole
+  //    log replays. ──
+  const seedEvents = [
+    // inherited span (below the cut) — owned by the PARENT's replay
+    ev(0, T0, 'step/start', { turn: 1, step: 1 }),
+    ev(1, T0 + 100, 'assistant/message', { turn: 1, step: 1, message: {}, usage: { inputTokens: 40, outputTokens: 40 } }),
+    ev(2, T0 + 200, 'turn/end', { turn: 1, reason: 'completed' }),
+    // own span (above the cut)
+    ev(3, T0 + 1000, 'step/start', { turn: 2, step: 1 }),
+    ev(4, T0 + 1100, 'assistant/message', { turn: 2, step: 1, message: {}, usage: { inputTokens: 4, outputTokens: 5 } }),
+    ev(5, T0 + 1200, 'turn/end', { turn: 2, reason: 'completed' }),
+  ]
+  const logsJ = new Map([
+    // j1: seeded fork child, NO parentSession in the header (like 6519d23a).
+    ['j1', { header: { id: 'j1' }, inheritedEventCount: 3, events: seedEvents }],
+    // k1: subagent fork child (header DOES carry parentSession).
+    ['k1', { header: { id: 'k1', parentSession: 'kp' }, inheritedEventCount: 3, events: seedEvents }],
+    // j2: unseeded session (cut = 0) — whole log, both spans.
+    ['j2', { header: { id: 'j2' }, inheritedEventCount: 0, events: seedEvents }],
+  ])
+  const storeJ = mockStore()
+  const collectorJ = new LedgerCollector({ store: storeJ, concurrency: 2 })
+  await collectorJ.backfill(mockPersistence(logsJ), noLiveSessions)
+  const jIds = storeJ.calls.request.map((r) => r.id)
+  ok(!jIds.includes('j1:1:1:0'), 'seeded fork (no parentSession): inherited prefix yields zero facts — the parent owns it')
+  ok(jIds.includes('j1:2:1:0'), 'seeded fork (no parentSession): own span replayed')
+  eq(storeJ.calls.request.find((r) => r.id === 'j1:2:1:0')?.computedTotal, 9, 'seeded fork: own tokens counted')
+  eq(storeJ.calls.turn.filter((m) => m.sessionId === 'j1').length, 1, 'seeded fork: only the post-cut turn marker')
+  eq(storeJ.calls.request.find((r) => r.id === 'j1:2:1:0')?.kind, 'main', 'seeded fork: kind main (header carries no parentSession)')
+  ok(!jIds.includes('k1:1:1:0'), 'subagent fork (parentSession): inherited prefix skipped too')
+  ok(jIds.includes('k1:2:1:0'), 'subagent fork: own span replayed')
+  eq(storeJ.calls.request.find((r) => r.id === 'k1:2:1:0')?.kind, 'subagent', 'subagent fork: kind subagent')
+  ok(jIds.includes('j2:1:1:0') && jIds.includes('j2:2:1:0'), 'unseeded (cut=0): whole log replayed — the skip is a no-op')
+  eq(storeJ.calls.turn.filter((m) => m.sessionId === 'j2').length, 2, 'unseeded (cut=0): both turn markers recorded')
+
+  // ── fix regression (2026-11-17): startup reconciliation sweep — cursor-
+  //    marked DEAD sessions healed (offline tail hole / zero-mark victim);
+  //    live and unmarked sessions are the sweep's no-go zones ──
+  const logsL = new Map([
+    // w1: dead, cursor-marked, row lastSeq=5 but the log runs to 21 — the
+    // plugin was fully off while (5, 21] was persisted, then it closed.
+    ['w1', { header: { id: 'w1' }, inheritedEventCount: 0, events: [
+      ev(0, T0, 'step/start', { turn: 1, step: 1 }),
+      ev(1, T0 + 10, 'assistant/message', { turn: 1, step: 1, message: {}, usage: { inputTokens: 1, outputTokens: 1 } }),
+      ev(2, T0 + 20, 'turn/end', { turn: 1, reason: 'completed' }),
+      ev(3, T0 + 30, 'step/start', { turn: 2, step: 1 }),
+      ev(4, T0 + 40, 'assistant/message', { turn: 2, step: 1, message: {}, usage: { inputTokens: 2, outputTokens: 2 } }),
+      ev(5, T0 + 50, 'turn/end', { turn: 2, reason: 'completed' }),
+      ev(6, T0 + 1000, 'step/start', { turn: 3, step: 1 }),
+      ev(20, T0 + 2000, 'assistant/message', { turn: 3, step: 1, message: {}, usage: { inputTokens: 7, outputTokens: 7 } }),
+      ev(21, T0 + 2100, 'turn/end', { turn: 3, reason: 'completed' }),
+    ] }],
+    // w2: dead, cursor-marked, NO session row (zero-mark victim) — full replay.
+    ['w2', { header: { id: 'w2' }, inheritedEventCount: 0, events: [
+      ev(0, T0, 'step/start', { turn: 1, step: 1 }),
+      ev(1, T0 + 10, 'assistant/message', { turn: 1, step: 1, message: {}, usage: { inputTokens: 5, outputTokens: 5 } }),
+      ev(2, T0 + 20, 'turn/end', { turn: 1, reason: 'completed' }),
+    ] }],
+    // w3: dead, cursor-marked, row lastSeq == log maxSeq — caught up.
+    ['w3', { header: { id: 'w3' }, inheritedEventCount: 0, events: [
+      ev(0, T0, 'step/start', { turn: 1, step: 1 }),
+      ev(1, T0 + 10, 'assistant/message', { turn: 1, step: 1, message: {}, usage: { inputTokens: 6, outputTokens: 6 } }),
+      ev(2, T0 + 20, 'turn/end', { turn: 1, reason: 'completed' }),
+    ] }],
+    // w4: NOT cursor-marked — the main scan owns it, the sweep must not.
+    ['w4', { header: { id: 'w4' }, inheritedEventCount: 0, events: [
+      ev(0, T0, 'step/start', { turn: 1, step: 1 }),
+      ev(1, T0 + 10, 'assistant/message', { turn: 1, step: 1, message: {}, usage: { inputTokens: 8, outputTokens: 8 } }),
+      ev(2, T0 + 20, 'turn/end', { turn: 1, reason: 'completed' }),
+    ] }],
+    // w5: LIVE, cursor-marked, row lastSeq=0 with usage above it — the sweep
+    // must leave it to catchUpLiveGap/disposeCatchUp (liveContiguous gate).
+    ['w5', { header: { id: 'w5' }, inheritedEventCount: 0, events: [
+      ev(0, T0, 'step/start', { turn: 1, step: 1 }),
+      ev(1, T0 + 10, 'assistant/message', { turn: 1, step: 1, message: {}, usage: { inputTokens: 9, outputTokens: 9 } }),
+      ev(2, T0 + 20, 'turn/end', { turn: 1, reason: 'completed' }),
+    ] }],
+  ])
+  const storeL = mockStore()
+  storeL.setCursor({ backfilledSessions: ['w1', 'w2', 'w3', 'w5'], liveFirstSeq: {} })
+  storeL.sessions.set('w1', { lastSeq: 5 })
+  storeL.sessions.set('w3', { lastSeq: 2 })
+  storeL.sessions.set('w5', { lastSeq: 0 })
+  const collectorL = new LedgerCollector({ store: storeL, concurrency: 1 })
+  await collectorL.backfill(mockPersistence(logsL), { list: () => [{ id: 'w5' }] })
+  const lIds = storeL.calls.request.map((r) => r.id)
+  ok(lIds.includes('w1:3:1:0'), 'sweep: offline tail hole (5, 21] replayed')
+  ok(!lIds.includes('w1:1:1:0') && !lIds.includes('w1:2:1:0'), 'sweep: accounted prefix untouched')
+  ok(storeL.calls.turn.some((m) => m.sessionId === 'w1' && m.seq === 21), 'sweep: tail turn marker recorded')
+  eq(storeL.sessions.get('w1')?.lastSeq, 21, 'sweep: high-water advanced to the log max')
+  ok(lIds.includes('w2:1:1:0'), 'sweep: zero-mark victim (no row) fully replayed from seq 0')
+  eq(storeL.calls.turn.filter((m) => m.sessionId === 'w2').length, 1, 'sweep: zero-mark victim turn marker')
+  ok(!lIds.some((id) => id.startsWith('w3:')), 'sweep: caught-up session writes nothing')
+  eq(storeL.calls.markSessionSeq.filter(([id]) => id === 'w3').length, 0, 'sweep: caught-up session never marked')
+  eq(lIds.filter((id) => id === 'w4:1:1:0').length, 1, 'sweep: unmarked session left to the main scan (exactly once)')
+  ok(storeL.calls.markBackfilled.some((b) => b.includes('w4')), 'sweep scenario: main scan still marks unmarked sessions')
+  ok(!lIds.some((id) => id.startsWith('w5:')), 'sweep: live session untouched (gap belongs to the live path)')
+  eq(collectorL.status.sweep?.checked, 3, 'sweep status: checked = dead cursor sessions (w1, w2, w3)')
+  eq(collectorL.status.sweep?.replayed, 2, 'sweep status: replayed = w1 tail + w2 full')
+  eq(collectorL.status.error, undefined, 'sweep scenario: clean run leaves status.error unset')
 
   // ── summary ──
   if (failures > 0) {

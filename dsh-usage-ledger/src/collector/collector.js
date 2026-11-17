@@ -11,8 +11,15 @@
  * Backfill: `backfill(persistence, sessions, signal)` enumerates persisted
  * sessions (dual list shape: rc.1 header[] / alpha snapshot[]), skips cursor-
  * known `backfilledSessions`, and replays each remainder through a FRESH fold
- * with one batch flush per session. A fork-inherited prefix (seq <
- * inheritedEventCount) is skipped — the parent's pass owns those events.
+ * with one batch flush per session. The inherited prefix (seq <
+ * inheritedEventCount) is skipped UNCONDITIONALLY — host invariant
+ * (dsh-session-persistence-jsonl, toHeaderLine): inheritedEventCount > 0 ⟺
+ * isSeeded, so a cut can only mean a seeded fork child whose prefix the
+ * parent's pass owns; unseeded sessions (resume included) report cut = 0,
+ * making the skip a no-op. header.parentSession must NOT gate this: UI-forked
+ * seeded sessions carry no parentSession (session-6519d23a: seeded, no
+ * parentSession, cut=691 — a parentSession gate double-counted ~6.3M against
+ * parent session-2841fa4b; reverted 2026-11-17).
  * Concurrency is a simple worker pool (default 4); every 32 finished sessions
  * are `markBackfilled` in one batch; an abort exits cleanly mid-scan and a
  * single broken session lands in `status.error` (first message kept) without
@@ -37,8 +44,9 @@
  * high-water at turn boundaries; facts are idempotent upserts, so a stale H
  * can only re-replay, never double-count tokens). A session that closes
  * WITHOUT a post-gap event is healed by `disposeCatchUp` (tail replay above
- * the high-water); one that closed while the plugin was fully off is only
- * healed by /reset — documented residual.
+ * the high-water); one that closed while the plugin was fully off is healed
+ * by the startup `reconcileSweep` (fix, 2026-11-17) — the README's
+ * documented residual ("only healed by /reset") is closed.
  *
  * Iron rules honored here: the session log is the only source of truth (this
  * module NEVER appends anything), no polling (we wait for persisted events),
@@ -110,7 +118,9 @@ export class LedgerCollector {
     const n = Number(concurrency)
     this.concurrency = Number.isFinite(n) && n >= 1 ? Math.min(16, Math.round(n)) : 4
     /** @type {{running: boolean, total: number, done: number, scannedSessions: number,
-     *          lastSessionId?: string, error?: string, deferredSessions?: string[]}} routes read this for /status. */
+     *          lastSessionId?: string, error?: string, deferredSessions?: string[],
+     *          sweep?: {checked: number, replayed: number}}} routes read this for /status
+     *          (`sweep` is the additive reconciliation-sweep report, 2026-11-17). */
     this.status = { running: false, total: 0, done: 0, scannedSessions: 0, deferredSessions: [] }
     /** @type {Map<string, RequestFold>} one fold per live session */
     this.folds = new Map()
@@ -328,11 +338,31 @@ export class LedgerCollector {
     })()
   }
 
-  /** Replay one session's persisted events in the open range (fromSeq, toSeq). */
-  async replayRange(sid, parentId, fromSeq, toSeq) {
-    const persistence = this.persistence
-    if (!persistence || typeof persistence.open !== 'function') return
-    const { events, inheritedCut } = await this.readLog(persistence, sid)
+  /**
+   * Replay one session's persisted events in the open range (fromSeq, toSeq).
+   * An optional `prefetched` {events, inheritedCut} (from a prior readLog)
+   * reuses that read instead of hitting the log again (the reconciliation
+   * sweep already read it to compute maxSeq).
+   */
+  async replayRange(sid, parentId, fromSeq, toSeq, prefetched) {
+    let events
+    let inheritedCut
+    if (prefetched !== undefined && prefetched !== null) {
+      events = prefetched.events
+      inheritedCut = prefetched.inheritedCut
+    } else {
+      const persistence = this.persistence
+      if (!persistence || typeof persistence.open !== 'function') return
+      ;({ events, inheritedCut } = await this.readLog(persistence, sid))
+    }
+    // The inherited prefix is skipped UNCONDITIONALLY — host invariant
+    // (dsh-session-persistence-jsonl, toHeaderLine): inheritedEventCount > 0 ⟺
+    // isSeeded. A cut can only mean a seeded fork child whose prefix the
+    // parent's replay owns; unseeded sessions (resume included) always report
+    // cut = 0, so the skip is a no-op for them. header.parentSession must NOT
+    // gate this: UI-forked seeded sessions carry no parentSession
+    // (session-6519d23a: seeded, no parentSession, cut=691 — a parentSession
+    // gate double-counted ~6.3M against parent session-2841fa4b).
     const own = events.filter((ev) => !(inheritedCut > 0 && seqOf(ev) !== undefined && seqOf(ev) < inheritedCut))
     const firstOwn = own.find((ev) => ev && typeof ev.type === 'string')
     const fold = new RequestFold({
@@ -435,12 +465,85 @@ export class LedgerCollector {
       await flushCompleted()
       // Report deferrals (capped id list) — /status surfaces them.
       this.status.deferredSessions = deferred.slice(-DEFERRED_LIST_CAP)
+      // Startup reconciliation sweep: heal cursor-marked DEAD sessions whose
+      // persisted spans outrun the store's high-water (offline-window tail /
+      // zero-mark victims). Runs before prune; observational throughout.
+      await this.reconcileSweep(persistence, sessions, backfilled, headers, signal)
       try { await this.store.prune() } catch { /* idempotent housekeeping */ }
     } catch (err) {
       // Listing/cursor orchestration failures surface in status, never escape.
       this.status.error = err instanceof Error ? err.message : String(err)
     } finally {
       this.status.running = false
+    }
+  }
+
+  /**
+   * Startup reconciliation sweep (fix, 2026-11-17). Cursor-marked DEAD
+   * sessions can still carry unaccounted persisted spans:
+   *  - no session row at all (the zero-mark bug's victims — a full replay
+   *    predating high-water marking left no row, e.g. the 74M-token session)
+   *    → replay the whole log from seq 0;
+   *  - row.lastSeq < log maxSeq (the session kept persisting events while the
+   *    plugin was fully off, then closed) → replay the open tail
+   *    (lastSeq, ∞) — the README's documented /reset residual, now healed;
+   *  - row.lastSeq >= log maxSeq → already accounted: one log read, no writes.
+   * Replay goes through the same replayRange fold + record* path
+   * (flush({dropRunning:true}), trusted markHighSeq). NEVER touches live
+   * sessions — their gaps belong to catchUpLiveGap/disposeCatchUp, and a mark
+   * here would break the liveContiguous gate — nor unmarked/deferred sessions
+   * (the main scan owns them). Abort-aware; one broken session rides
+   * status.error without stopping the sweep; never throws into the caller.
+   */
+  async reconcileSweep(persistence, sessions, backfilled, headers, signal) {
+    if (signal?.aborted) return
+    if (typeof this.store.sessionHighSeq !== 'function') return
+    const liveIds = new Set()
+    try {
+      if (typeof sessions?.list === 'function') {
+        for (const s of sessions.list()) {
+          if (typeof s?.id === 'string' && s.id !== '') liveIds.add(s.id)
+        }
+      }
+    } catch { /* liveness is best-effort; the live pass still owns the session */ }
+    const headerById = new Map()
+    for (const h of headers) {
+      if (typeof h?.id === 'string' && h.id !== '') headerById.set(h.id, h)
+    }
+    const sweep = { checked: 0, replayed: 0 }
+    this.status.sweep = sweep
+    for (const id of backfilled) {
+      if (signal?.aborted) return
+      if (liveIds.has(id)) continue // live: catchUpLiveGap/disposeCatchUp own it
+      const header = headerById.get(id)
+      if (header === undefined) continue // log no longer listed: nothing to reconcile
+      try {
+        const read = await this.readLog(persistence, id, signal)
+        if (signal?.aborted) return
+        let maxSeq = -1
+        for (const item of read.events) {
+          const seq = seqOf(item)
+          if (seq !== undefined && seq > maxSeq) maxSeq = seq
+        }
+        const high = await this.store.sessionHighSeq(id)
+        sweep.checked++
+        const parentId = headerParentOf(header)
+        if (high === null || high === undefined || high < 0) {
+          // No row: zero-mark victim — the whole canonical log from seq 0.
+          await this.replayRange(id, parentId, -1, Infinity, read)
+          sweep.replayed++
+        } else if (high < maxSeq) {
+          // Offline-window tail hole: replay (high, ∞).
+          await this.replayRange(id, parentId, high, Infinity, read)
+          sweep.replayed++
+        }
+        // else: caught up — read-only, no writes, no mark.
+      } catch (err) {
+        // One broken session must not stop the sweep; keep the FIRST error.
+        if (this.status.error === undefined) {
+          this.status.error = `sweep ${id}: ${err instanceof Error ? err.message : String(err)}`
+        }
+      }
     }
   }
 
@@ -511,7 +614,12 @@ export class LedgerCollector {
     // is the fallback. Both yield (events, inheritedCut).
     const { events, inheritedCut } = await this.readLog(persistence, header.id, signal)
     if (replayNothing) return 'done'
-    // Own events: skip the fork-inherited prefix (the parent's pass owns it).
+    // Own events: skip the inherited prefix UNCONDITIONALLY — host invariant
+    // (toHeaderLine): cut > 0 ⟺ isSeeded, so the prefix always belongs to a
+    // parent session's replay; unseeded sessions (resume included) report
+    // cut = 0 and the skip is a no-op. header.parentSession is NOT a
+    // discriminator: seeded UI forks carry none (session-6519d23a vs parent
+    // 2841fa4b — a parentSession gate double-counted ~6.3M).
     const own = events.filter((ev) => !(inheritedCut > 0 && seqOf(ev) !== undefined && seqOf(ev) < inheritedCut))
     // The session's own first event decides the workflow heuristic.
     const parentId = headerParentOf(header)
