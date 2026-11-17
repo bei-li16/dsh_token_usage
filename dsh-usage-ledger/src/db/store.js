@@ -55,8 +55,12 @@ const SESSION_RECORDS_CAP = 500
  *  边界 provider 函数（在串行队列 job 内、wipe 之前求值，index.js 的
  *  /reset 借此把边界采样移入 job 以关闭亚秒采样窗口）。若不升代，toggle
  *  升级会继续复用旧 v5 实例——旧实例把 provider 函数当 Map 用，reset 语义
- *  直接坏掉（与 v5 不升代的教训同类）。 */
-export const STORE_VERSION = 6
+ *  直接坏掉（与 v5 不升代的教训同类）。
+ *  v7（2026-11-17）：sessionDetail 公共读方法契约变更——响应新增 children[]
+ *  （KV sessions BFS 后代成员）且 byModel 行新增四桶（数据源改为 SQLite
+ *  无上限 GROUP BY）。读方法契约也变了：若不升代，toggle 升级会继续复用
+ *  旧 v6 实例，新字段不存在、新面板拿不到数据（0.1.3 的教训同类）。 */
+export const STORE_VERSION = 7
 
 /** 错误对象 → 单行安全文本（status.backendError 用）。 */
 function sanitizeError(err) {
@@ -691,9 +695,29 @@ export function createLedgerStore({ storageDomain, config, logger }) {
         totals.reasoningTokens += row.reasoningTokens ?? 0
         requests += row.requests; failures += row.failures
       }
+      // children：BFS 的后代成员（不含请求的根会话自身）。KV 来源——降级
+      // （无 SQLite）时同样可用；tokens 与 totals 同口径（行内四桶之和，
+      // applySession 维护）。根会话自身无索引行时 BFS 已容许继续扩散，其余
+      // 后代照常返回。
+      const children = memberRows
+        .filter((row) => row.id !== id)
+        .map((row) => ({
+          id: row.id,
+          parentId: row.parentId ?? null,
+          kind: row.kind,
+          name: row.name ?? '',
+          requests: row.requests,
+          failures: row.failures,
+          turns: row.turns,
+          tokens: row.tokens,
+          inputTokens: row.inputTokens,
+          outputTokens: row.outputTokens,
+          cacheReadTokens: row.cacheReadTokens,
+          cacheWriteTokens: row.cacheWriteTokens,
+        }))
       if (!sqlite) {
         return {
-          id, index, totals, requests, failures,
+          id, index, totals, requests, failures, children,
           avgFirstTokenMs: null, tokensPerSecond: null,
           byModel: [], records: [], tools: [], degraded: true,
         }
@@ -702,15 +726,22 @@ export function createLedgerStore({ storageDomain, config, logger }) {
       const tools = sqlite.sessionToolAgg(memberIds).map((row) => ({
         name: row.name, calls: Number(row.calls), failures: Number(row.failures),
       }))
-      const byModelMap = new Map()
+      // byModel：无上限 GROUP BY 聚合（不随 500 明细 cap 截断），每行携带四桶。
+      const byModel = sqlite.sessionModelAgg(memberIds)
+        .map((row) => ({
+          model: row.model,
+          provider: row.provider,
+          tokens: Number(row.tokens),
+          requests: Number(row.requests),
+          failures: Number(row.failures),
+          inputTokens: Number(row.inputTokens),
+          outputTokens: Number(row.outputTokens),
+          cacheReadTokens: Number(row.cacheReadTokens),
+          cacheWriteTokens: Number(row.cacheWriteTokens),
+        }))
+        .sort((a, b) => b.tokens - a.tokens)
       let ftmSum = 0; let ftmCount = 0; let decodeMsSum = 0; let decodeOutput = 0
       for (const record of records) {
-        const key = `${record.provider}|${record.model}`
-        const agg = byModelMap.get(key) ?? { model: record.model, provider: record.provider, tokens: 0, requests: 0, failures: 0 }
-        agg.tokens += record.computedTotal
-        agg.requests += 1
-        if (FAILURE_STATUSES.has(record.status)) agg.failures += 1
-        byModelMap.set(key, agg)
         // 速率均值只算 completed 且有值的记录（contract 口径）。
         if (record.status === 'completed' && record.firstTokenMs !== null) {
           ftmSum += record.firstTokenMs; ftmCount += 1
@@ -719,9 +750,8 @@ export function createLedgerStore({ storageDomain, config, logger }) {
           decodeMsSum += record.decodeMs; decodeOutput += record.outputTokens
         }
       }
-      const byModel = [...byModelMap.values()].sort((a, b) => b.tokens - a.tokens)
       return {
-        id, index, totals, requests, failures,
+        id, index, totals, requests, failures, children,
         avgFirstTokenMs: ftmCount > 0 ? Math.round(ftmSum / ftmCount) : null,
         tokensPerSecond: decodeRateOf(decodeOutput, decodeMsSum),
         byModel, records, tools, degraded: false,

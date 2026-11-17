@@ -356,6 +356,26 @@ export function openFactsBackend(path) {
       `)
       return stmt.all(...sessionIds)
     },
+    /** 会话（含子孙）按 (provider, model) 无上限聚合——sessionDetail 的 byModel
+     *  四桶来源。刻意不走 500 上限的 records 切片：面板的分桶明细不受明细窗口
+     *  cap 截断（v7，2026-11-17）。行形状：
+     *  {provider, model, requests, failures, tokens, inputTokens, outputTokens,
+     *   cacheReadTokens, cacheWriteTokens}（tokens = computed_total 之和）。 */
+    sessionModelAgg(sessionIds) {
+      if (sessionIds.length === 0) return []
+      const marks = sessionIds.map(() => '?').join(',')
+      const stmt = db.prepare(`
+        SELECT provider, model, COUNT(*) AS requests,
+          SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) AS failures,
+          SUM(computed_total) AS tokens,
+          SUM(input_tokens) AS inputTokens,
+          SUM(output_tokens) AS outputTokens,
+          SUM(cache_read_tokens) AS cacheReadTokens,
+          SUM(cache_write_tokens) AS cacheWriteTokens
+        FROM request WHERE session_id IN (${marks}) GROUP BY provider, model
+      `)
+      return stmt.all(...sessionIds)
+    },
     close() {
       try { db.close() } catch { /* 重复 close 无害 */ }
     },

@@ -1,5 +1,27 @@
 ![Usage ledger panel: daily token curves, a 52-week activity heatmap, and per-model distribution](preview.svg)
 
+## Session view (per-session Usage tab)
+
+Each session page gains a Usage tab (`conversation.view` slot) with that
+session's own breakdown — aligned with token-total's session view, minus its
+request-records section (a deliberate design decision):
+
+- **Six metric cards**: requests (with failure count and failure rate), total /
+  input / output tokens, cache hit rate (cache-read over the three prompt
+  buckets), and decode speed with the average first-token wait.
+- **Sub-session table**: descendant sessions (name, requests, tokens, cache
+  hit rate, kind). Sourced from the permanent KV session index, so it stays
+  available even when the SQLite detail backend is degraded.
+- **Per-model table**: requests plus input / output / cache-read /
+  cache-write token buckets and cache hit rate, aggregated by an unbounded
+  SQLite `GROUP BY` over the session and its descendants (not truncated by
+  the detail cap). Needs the detail backend, so it is empty while degraded;
+  tool chips likewise.
+- **Live header**: a 2-second serialized poll (at most one in-flight request,
+  with an immediate catch-up fetch when the tab becomes visible again) with
+  the last successful read's clock stamp, plus a manual refresh that never
+  stalls behind an in-flight poll. A failed poll keeps the last good data.
+
 ## Backfill semantics (disable / reinstall / upgrade)
 
 - **Deferred live sessions**: a session that is open (window still alive) when

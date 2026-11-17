@@ -472,9 +472,20 @@ export function emptySessionIndexRow(id) {
  *             cacheWriteTokens: number, reasoningTokens: number}} totals  from `index` (zeros when absent)
  * @property {number} requests
  * @property {number} failures
+ * @property {{id: string, parentId: string|null, kind: SessionKind, name: string,
+ *             requests: number, failures: number, turns: number,
+ *             tokens: number, inputTokens: number, outputTokens: number,
+ *             cacheReadTokens: number, cacheWriteTokens: number}[]} children
+ *            KV-sourced descendant rows (BFS below the requested session,
+ *            excluding the root itself; [] when none). `tokens` is the
+ *            four-bucket sum, same 口径 as `totals`. Available even when
+ *            degraded (KV is its only source).
  * @property {number|null} avgFirstTokenMs   over completed records in the detail window
  * @property {number|null} tokensPerSecond
- * @property {{model: string, provider: string, tokens: number, requests: number, failures: number}[]} byModel
+ * @property {{model: string, provider: string, tokens: number, requests: number, failures: number,
+ *             inputTokens: number, outputTokens: number, cacheReadTokens: number, cacheWriteTokens: number}[]} byModel
+ *            unbounded SQLite GROUP BY over member sessions (`tokens` =
+ *            computedTotal sum; [] when degraded)
  * @property {RequestFact[]} records         SQLite detail (30-day window), newest first
  * @property {{name: string, calls: number, failures: number}[]} tools
  * @property {boolean} degraded              true when records/tools are unavailable (KV-only)

@@ -38,13 +38,14 @@ window.__ModuleLoader__.load({
       toolsTitle: '工具分布', tName: '工具', tCalls: '次数', tFail: '失败率', tAvg: '平均耗时',
       sessTitle: '会话', sName: '名称', sKind: '类型', sDays: '活跃区间', sReq: '请求', sTok: 'tokens',
       kindMain: '主会话', kindSub: '子代理', kindWorkflow: '工作流',
-      svTotals: '会话汇总（含子孙）', svRecords: '请求明细', svTools: '工具调用',
+      svTotals: '会话汇总（含子孙）', svTools: '工具调用',
       svDegraded: '明细已超保留期或不可用，仅显示永久汇总。',
-      cTime: '时间', cModel: '模型', cStatus: '状态', cTok: 'tokens', cTtft: '首 token', cSpeed: '速度',
-      stRunning: '进行中', stCompleted: '完成', stFailed: '失败', stInterrupted: '中断',
+      svLive: '实时', svAsOf: '更新于', svRefresh: '刷新',
+      svTokens: 'Tokens', svChildren: '子会话', svModels: '模型', svModel: '模型', svHit: '命中率',
+      svNoChildren: '暂无子会话', svNoModels: '暂无模型数据',
       tokPerS: 't/s',
       reqWord: '次请求', recordFail: '条写入失败',
-      sessTotal: '共 {n} 个会话', recTrunc: '显示前 50 / 共 {n} 条',
+      sessTotal: '共 {n} 个会话',
       dwToday: '（今天）', donutRange: '（近 {n}）',
     }
     const en = {
@@ -64,13 +65,14 @@ window.__ModuleLoader__.load({
       toolsTitle: 'Tool usage', tName: 'Tool', tCalls: 'Calls', tFail: 'Failure rate', tAvg: 'Avg duration',
       sessTitle: 'Sessions', sName: 'Name', sKind: 'Kind', sDays: 'Active span', sReq: 'Requests', sTok: 'tokens',
       kindMain: 'Main', kindSub: 'Subagent', kindWorkflow: 'Workflow',
-      svTotals: 'Session totals (incl. descendants)', svRecords: 'Request records', svTools: 'Tool calls',
+      svTotals: 'Session totals (incl. descendants)', svTools: 'Tool calls',
       svDegraded: 'Detail has aged out of retention or is unavailable; permanent rollup only.',
-      cTime: 'Time', cModel: 'Model', cStatus: 'Status', cTok: 'tokens', cTtft: 'TTFT', cSpeed: 'Speed',
-      stRunning: 'Running', stCompleted: 'Completed', stFailed: 'Failed', stInterrupted: 'Interrupted',
+      svLive: 'Live', svAsOf: 'as of', svRefresh: 'Refresh',
+      svTokens: 'Tokens', svChildren: 'Sub-sessions', svModels: 'Models', svModel: 'Model', svHit: 'Hit',
+      svNoChildren: 'No sub-sessions', svNoModels: 'No model data',
       tokPerS: 't/s',
       reqWord: 'requests', recordFail: 'write failures',
-      sessTotal: '{n} sessions', recTrunc: 'showing first 50 of {n}',
+      sessTotal: '{n} sessions',
       dwToday: ' (Today)', donutRange: ' (last {n})',
     }
 
@@ -152,10 +154,10 @@ window.__ModuleLoader__.load({
     const fmtPct = (v) => (typeof v === 'number' && Number.isFinite(v) ? `${v.toFixed(1)}%` : t('na'))
     const fmtSpeed = (v) => (typeof v === 'number' && Number.isFinite(v) ? `${v.toFixed(1)} ${t('tokPerS')}` : t('na'))
     const pad2 = (n) => String(n).padStart(2, '0')
-    const fmtTime = (ms) => {
-      if (typeof ms !== 'number' || !Number.isFinite(ms)) return t('na')
+    // live-header clock for the session tab's "as of" poll stamp: HH:MM:SS
+    const fmtClock = (ms) => {
       const d = new Date(ms)
-      return `${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`
+      return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`
     }
     // heatmap tooltip header: zh → 2026年11月13日, en → November 13, 2026
     const fmtDayLong = (dayKey) => {
@@ -244,10 +246,18 @@ window.__ModuleLoader__.load({
 .ul-cellDim{color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ul-cellNum2{font-variant-numeric:tabular-nums;text-align:right}
 .ul-session{display:flex;flex-direction:column;gap:18px;color:var(--dsw-alias-label-primary);font:inherit;padding:8px 0}
-.ul-recHead,.ul-recRow{grid-template-columns:90px minmax(100px,1.4fr) 70px 70px 70px 70px}
-.ul-recHead{color:var(--dsw-alias-label-tertiary);border-bottom:1px solid var(--dsw-alias-border-l2);padding-bottom:6px}
-.ul-recRow{padding:4px 0;border-bottom:1px solid color-mix(in srgb,var(--dsw-alias-border-l2) 50%,transparent);color:var(--dsw-alias-label-secondary)}
-.ul-cellBad{color:var(--dsw-alias-state-error-primary,var(--dsw-alias-label-secondary))}
+.ul-svHead{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+.ul-svLive{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--dsw-alias-label-secondary)}
+.ul-liveDot{width:8px;height:8px;border-radius:50%;background:var(--dsw-tone-1);flex:0 0 auto}
+.ul-svAsOf{color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}
+.ul-svRefresh{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);border-radius:6px;padding:2px 10px;cursor:pointer;font:inherit;font-size:12px}
+.ul-svRefresh:hover{background:var(--dsw-alias-interactive-bg-hover)}
+.ul-chHead,.ul-chRow{grid-template-columns:minmax(96px,1.6fr) 52px 70px 62px minmax(64px,1fr)}
+.ul-chHead{color:var(--dsw-alias-label-tertiary);border-bottom:1px solid var(--dsw-alias-border-l2);padding-bottom:6px}
+.ul-chRow{padding:5px 0;border-bottom:1px solid color-mix(in srgb,var(--dsw-alias-border-l2) 50%,transparent);color:var(--dsw-alias-label-secondary)}
+.ul-mdHead,.ul-mdRow{grid-template-columns:minmax(110px,1.8fr) 52px minmax(64px,1fr) minmax(64px,1fr) minmax(64px,1fr) minmax(64px,1fr) 62px}
+.ul-mdHead{color:var(--dsw-alias-label-tertiary);border-bottom:1px solid var(--dsw-alias-border-l2);padding-bottom:6px}
+.ul-mdRow{padding:5px 0;border-bottom:1px solid color-mix(in srgb,var(--dsw-alias-border-l2) 50%,transparent);color:var(--dsw-alias-label-secondary)}
 .ul-toolMini{display:flex;flex-wrap:wrap;gap:8px}
 .ul-foldGrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
 @media (max-width:1100px){.ul-foldGrid{grid-template-columns:1fr}}
@@ -272,10 +282,10 @@ window.__ModuleLoader__.load({
       return null
     }
 
-    function Card({ label, value, sub }) {
+    function Card({ label, value, sub, title }) {
       return h('div', { className: 'ul-card' },
         h('div', { className: 'ul-cardLabel' }, label),
-        h('div', { className: 'ul-cardValue' }, value),
+        h('div', { className: 'ul-cardValue', title }, value),
         sub ? h('div', { className: 'ul-cardSub' }, sub) : null)
     }
 
@@ -1020,54 +1030,160 @@ window.__ModuleLoader__.load({
 
     // ── placeholders, filled in one component at a time ────────────────────
     // ── per-session usage view (/session {id}) — conversation.view slot ────
-    const STATUS_LABEL = { running: 'stRunning', completed: 'stCompleted', failed: 'stFailed', interrupted: 'stInterrupted' }
+    /** Serialized 2s polling for the session usage tab (token-total's
+     *  use-session-detail pattern): at most ONE in-flight request, a
+     *  visibilitychange wake-up (becoming visible refetches immediately; the
+     *  timer chain itself keeps polling while hidden, exactly like the
+     *  reference hook), a manual refresh that never stalls behind an
+     *  in-flight poll, the last successful read's wall-clock stamp, and full
+     *  cleanup on unmount / session change.
+     *  useApi stays single-shot for every other panel; this hook is the only
+     *  poller (mirrors useStatus's timer discipline). */
+    const SESSION_POLL_MS = 2000
+    function useSessionUsage(sessionId) {
+      const [state, setState] = React.useState({ data: null, error: null, loading: true, updatedAt: null })
+      const refreshRef = React.useRef(null)
+      React.useEffect(() => {
+        // stale data from a previous session never flashes: reset first
+        setState((s) => (s.data === null ? s : { data: null, error: null, loading: true, updatedAt: null }))
+        let active = true
+        let pending = false
+        let wantedNow = false
+        let timer = null
+        let ac = null
+        const request = () => {
+          if (!active || pending || !sessionId) return
+          if (timer) { clearTimeout(timer); timer = null }
+          pending = true
+          ac = new AbortController()
+          post('session', { id: sessionId }, ac.signal).then(
+            (data) => { if (active) setState({ data, error: null, loading: false, updatedAt: Date.now() }) },
+            (error) => {
+              if (error && error.name === 'AbortError') return
+              // keep the last good data (token-total keeps the previous
+              // detail); only the "as of" stamp stops advancing
+              if (active) setState((s) => ({ ...s, error, loading: false }))
+            },
+          ).finally(() => {
+            pending = false
+            // A refresh pressed mid-poll skips the interval and refetches as
+            // soon as the in-flight answer lands, so the click never stalls.
+            if (active) timer = setTimeout(request, wantedNow ? 0 : SESSION_POLL_MS)
+            wantedNow = false
+          })
+        }
+        const wake = () => { if (document.visibilityState === 'visible') request() }
+        refreshRef.current = () => { if (pending) wantedNow = true; else request() }
+        document.addEventListener('visibilitychange', wake)
+        request()
+        return () => {
+          active = false
+          refreshRef.current = null
+          if (ac) ac.abort()
+          if (timer) clearTimeout(timer)
+          document.removeEventListener('visibilitychange', wake)
+        }
+      }, [sessionId])
+      return { ...state, refresh: () => refreshRef.current && refreshRef.current() }
+    }
+
+    // cache hit rate from the three prompt buckets: cacheRead / (input +
+    // cacheRead + cacheWrite) × 100 — null when there is no prompt volume.
+    const hitRateOf = (input, read, write) => {
+      const denom = (input || 0) + (read || 0) + (write || 0)
+      return denom > 0 ? ((read || 0) / denom) * 100 : null
+    }
+    const fmtSec = (ms) => (typeof ms === 'number' && Number.isFinite(ms) ? `${(ms / 1000).toFixed(1)}s` : t('na'))
+
     function SessionUsageView({ sessionId }) {
-      const state = useApi('session', { id: sessionId }, [sessionId])
-      if (state.loading || state.error) {
-        return h('div', { className: 'ul-session' }, h('style', null, CSS), h(LoadState, { state }))
+      const { data, error, loading, refresh, updatedAt } = useSessionUsage(sessionId)
+      // Freshness header: the view polls continuously, so it always shows a
+      // live dot with the time of the last successful read, plus a manual
+      // refresh that refetches immediately (token-total's head row).
+      const head = h('div', { className: 'ul-svHead' },
+        h('span', { className: 'ul-svLive' },
+          h('span', { className: 'ul-liveDot' }),
+          t('svLive'),
+          updatedAt !== null ? h('span', { className: 'ul-svAsOf' }, `${t('svAsOf')} ${fmtClock(updatedAt)}`) : null),
+        h('button', { type: 'button', className: 'ul-svRefresh', onClick: refresh },
+          h('svg', { width: 12, height: 12, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true },
+            h('path', { d: 'M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8' }),
+            h('path', { d: 'M21 3v5h-5' })),
+          t('svRefresh')))
+      if (!data) {
+        return h('div', { className: 'ul-session' },
+          h('style', null, CSS),
+          head,
+          loading || error
+            ? h(LoadState, { state: { loading, error, retry: refresh } })
+            : h('div', { className: 'ul-note' }, t('empty')))
       }
-      const d = state.data
-      if (!d) return h('div', { className: 'ul-session' }, h('style', null, CSS), h('div', { className: 'ul-note' }, t('empty')))
-      const records = d.degraded ? [] : d.records.slice(0, 50)
+      const d = data
+      const hit = hitRateOf(d.totals.inputTokens, d.totals.cacheReadTokens, d.totals.cacheWriteTokens)
+      const failRate = d.requests > 0 ? ((d.failures / d.requests) * 100).toFixed(1) : '0.0'
+      // degraded: children come from the permanent KV rollups, so they stay;
+      // byModel needs SQLite detail, so it is empty (banner explains).
+      const children = d.children ?? []
+      const byModel = d.degraded ? [] : d.byModel ?? []
       const tools = d.degraded ? [] : d.tools
+      const hitOf = (r) => hitRateOf(r.inputTokens, r.cacheReadTokens, r.cacheWriteTokens)
       return h('div', { className: 'ul-session' },
         h('style', null, CSS),
+        head,
+        error ? h('div', { className: 'ul-error' },
+          h('span', null, `${t('loadError')}: ${error.message}`),
+          h('button', { type: 'button', onClick: refresh }, t('retry'))) : null,
+        // six metric cards, aligned with token-total's Metrics row
         h('section', { className: 'ul-sec' },
           h('div', { className: 'ul-secTitle' }, t('svTotals')),
           h('div', { className: 'ul-cards' },
-            h(Card, { label: t('totalTokens'), value: fmtTok(d.totals.tokens), sub: `${t('inputTok')} ${fmtTok(d.totals.inputTokens)} · ${t('outputTok')} ${fmtTok(d.totals.outputTokens)}` }),
-            h(Card, { label: t('requests'), value: fmtInt(d.requests), sub: `${t('failures')} ${fmtInt(d.failures)}` }),
-            h(Card, { label: t('avgTtft'), value: fmtMs(d.avgFirstTokenMs) }),
-            h(Card, { label: t('decodeSpeed'), value: fmtSpeed(d.tokensPerSecond) }))),
-        d.degraded
-          ? h('div', { className: 'ul-banner' }, t('svDegraded'))
-          : h(React.Fragment, null,
-              h('section', { className: 'ul-sec' },
-                h('div', { className: 'ul-secTitle' }, t('svRecords')),
-                records.length === 0
-                  ? h('div', { className: 'ul-note' }, t('empty'))
-                  : h(React.Fragment, null,
-                      h('div', { className: 'ul-table ul-recHead' },
-                        h('span', null, t('cTime')), h('span', null, t('cModel')), h('span', null, t('cStatus')),
-                        h('span', null, t('cTok')), h('span', null, t('cTtft')), h('span', null, t('cSpeed'))),
-                      records.map((r) => {
-                        const speed = r.decodeMs > 0 ? r.outputTokens / (r.decodeMs / 1000) : null
-                        return h('div', { key: r.id, className: 'ul-table ul-recRow' },
-                          h('span', { className: 'ul-cellDim' }, fmtTime(r.time)),
-                          h('span', { className: 'ul-cellName', title: r.model }, r.model || t('na')),
-                          h('span', { className: r.status === 'failed' ? 'ul-cellBad' : null }, t(STATUS_LABEL[r.status] || 'stCompleted')),
-                          h('span', { className: 'ul-cellNum2' }, fmtTok(r.computedTotal)),
-                          h('span', { className: 'ul-cellNum2' }, fmtMs(r.firstTokenMs)),
-                          h('span', { className: 'ul-cellNum2' }, speed === null ? t('na') : `${speed.toFixed(1)}`))
-                      }),
-                      d.records.length > records.length
-                        ? h('div', { className: 'ul-note' }, t('recTrunc').replace('{n}', fmtInt(d.records.length)))
-                        : null)),
-              tools.length === 0 ? null : h('section', { className: 'ul-sec' },
-                h('div', { className: 'ul-secTitle' }, t('svTools')),
-                h('div', { className: 'ul-toolMini' },
-                  tools.map((tool) => h('span', { key: tool.name, className: 'ul-chip' },
-                    `${tool.name} · ${fmtInt(tool.calls)}${tool.failures > 0 ? ` (${fmtInt(tool.failures)}✗)` : ''}`))))))
+            h(Card, { label: t('requests'), value: fmtInt(d.requests), sub: `${t('failures')} ${fmtInt(d.failures)} · ${failRate}%` }),
+            h(Card, { label: t('svTokens'), value: fmtTok(d.totals.tokens), title: fmtInt(d.totals.tokens) }),
+            h(Card, { label: t('inputTok'), value: fmtTok(d.totals.inputTokens), title: fmtInt(d.totals.inputTokens) }),
+            h(Card, { label: t('outputTok'), value: fmtTok(d.totals.outputTokens), title: fmtInt(d.totals.outputTokens) }),
+            h(Card, { label: t('cacheHit'), value: hit === null ? t('na') : fmtPct(hit) }),
+            h(Card, { label: t('decodeSpeed'), value: fmtSpeed(d.tokensPerSecond), sub: `${t('avgTtft')} ${fmtSec(d.avgFirstTokenMs)}` }))),
+        d.degraded ? h('div', { className: 'ul-banner' }, t('svDegraded')) : null,
+        // sub-session table (children[], KV-sourced: works even degraded)
+        h('section', { className: 'ul-sec' },
+          h('div', { className: 'ul-secTitle' }, t('svChildren')),
+          children.length === 0
+            ? h('div', { className: 'ul-note' }, t('svNoChildren'))
+            : h(React.Fragment, null,
+                h('div', { className: 'ul-table ul-chHead' },
+                  h('span', null, t('sName')), h('span', null, t('sReq')), h('span', null, t('sTok')),
+                  h('span', null, t('svHit')), h('span', null, t('sKind'))),
+                children.map((c) => h('div', { key: c.id, className: 'ul-table ul-chRow' },
+                  h('span', { className: 'ul-cellName', title: c.name || c.id }, c.name || c.id),
+                  h('span', { className: 'ul-cellNum2' }, fmtInt(c.requests)),
+                  h('span', { className: 'ul-cellNum2' }, fmtTok(c.tokens)),
+                  h('span', { className: 'ul-cellNum2' }, hitOf(c) === null ? t('na') : fmtPct(hitOf(c))),
+                  h('span', null, t(KIND_LABEL[c.kind] || 'kindMain')))))),
+        // per-model table (byModel[], needs SQLite detail → empty degraded)
+        h('section', { className: 'ul-sec' },
+          h('div', { className: 'ul-secTitle' }, t('svModels')),
+          byModel.length === 0
+            ? h('div', { className: 'ul-note' }, t('svNoModels'))
+            : h(React.Fragment, null,
+                h('div', { className: 'ul-table ul-mdHead' },
+                  h('span', null, t('svModel')), h('span', null, t('sReq')),
+                  h('span', null, t('inputTok')), h('span', null, t('outputTok')),
+                  h('span', null, t('cacheReadTok')), h('span', null, t('cacheWriteTok')),
+                  h('span', null, t('svHit'))),
+                byModel.map((m) => h('div', { key: `${m.provider}/${m.model}`, className: 'ul-table ul-mdRow' },
+                  h('span', { className: 'ul-cellName', title: m.model }, m.model || t('na')),
+                  h('span', { className: 'ul-cellNum2' }, fmtInt(m.requests)),
+                  h('span', { className: 'ul-cellNum2' }, fmtTok(m.inputTokens)),
+                  h('span', { className: 'ul-cellNum2' }, fmtTok(m.outputTokens)),
+                  h('span', { className: 'ul-cellNum2' }, fmtTok(m.cacheReadTokens)),
+                  h('span', { className: 'ul-cellNum2' }, fmtTok(m.cacheWriteTokens)),
+                  h('span', { className: 'ul-cellNum2' }, hitOf(m) === null ? t('na') : fmtPct(hitOf(m))))))),
+        // tool chips (our extra; token-total has no equivalent)
+        tools.length === 0 ? null : h('section', { className: 'ul-sec' },
+          h('div', { className: 'ul-secTitle' }, t('svTools')),
+          h('div', { className: 'ul-toolMini' },
+            tools.map((tool) => h('span', { key: tool.name, className: 'ul-chip' },
+              `${tool.name} · ${fmtInt(tool.calls)}${tool.failures > 0 ? ` (${fmtInt(tool.failures)}✗)` : ''}`)))))
     }
 
     // ── panel assembly ─────────────────────────────────────────────────────
@@ -1146,9 +1262,9 @@ window.__ModuleLoader__.load({
         ctx.slots.inject('plugins.bundle.config', () => ctx.slots.register({
           name: 'plugins.bundle.config', key: 'dsh-usage-ledger', locale: LOCALE_NS,
         }, Section))
-        // 会话页「用量」页签已移除（用户决定：会话页不再挂本插件视图，
-        // 避免与 token-total / cost-meter 的会话入口挤占页签栏）。
-        // SessionUsageView 组件保留在源码中，需要时恢复一段 register 即可。
+        ctx.slots.inject('conversation.view', () => ctx.slots.register({
+          name: 'conversation.view', id: 'usage-ledger-usage', order: 21, label: () => t('tab'), locale: LOCALE_NS,
+        }, SessionUsageView))
       },
     }
   },

@@ -213,6 +213,23 @@ async function main() {
     [['openai', 'gpt-x', 1480, 3, 0], ['openai', 'gpt-y', 60, 1, 0], ['', '', 30, 1, 1], ['anthropic', 'claude', 15, 1, 1]],
     'detail.byModel（gpt-x 含 day40 的 1000 tokens / 3 requests）',
   )
+  // ── v7：byModel 四桶（无上限 GROUP BY，非 500 cap 明细切片）────────────
+  assert.deepEqual(
+    detail.byModel.map((m) => [m.provider, m.model, m.inputTokens, m.outputTokens, m.cacheReadTokens, m.cacheWriteTokens]),
+    [['openai', 'gpt-x', 1100, 350, 20, 10], ['openai', 'gpt-y', 40, 20, 0, 0], ['', '', 20, 10, 0, 0], ['anthropic', 'claude', 10, 5, 0, 0]],
+    'detail.byModel 四桶（input/output/cacheRead/cacheWrite）',
+  )
+  // ── v7：children[]（BFS 后代成员，不含根自身；KV 来源）──────────────────
+  assert.deepEqual(
+    detail.children,
+    [{
+      id: 's2', parentId: 's1', kind: 'subagent', name: 'child-agent',
+      requests: 1, failures: 1, turns: 1,
+      tokens: 15, inputTokens: 10, outputTokens: 5, cacheReadTokens: 0, cacheWriteTokens: 0,
+    }],
+    'detail.children：唯一后代 s2 的完整行（tokens=四桶之和）',
+  )
+  assert.deepEqual((await store.sessionDetail('s2')).children, [], '无后代会话 children 为空数组')
   assert.deepEqual(
     detail.tools.map((t) => [t.name, t.calls, t.failures]),
     [['read', 2, 0], ['grep', 1, 1]],
@@ -437,6 +454,17 @@ async function main() {
   assert.equal(detail3.index.requests, 2)
   const tools3 = await store3.tools({})
   assert.deepEqual(tools3.tools.map((t) => [t.name, t.calls, t.avgDurationMs]), [['read', 1, 80]], '降级模式 tool rollup')
+  // ── v7：降级（KV-only）时 children 仍可用（KV 来源），byModel 维持 [] ─────
+  store3.recordRequest({ id: 's9c:1:1:0', sessionId: 's9c', parentId: 's9', kind: 'subagent', turn: 1, step: 1, attempt: 0, time: at(today, 9), finishedAt: at(today, 9) + 50, provider: 'openai', model: 'gpt-x', status: 'completed', inputTokens: 7, outputTokens: 3 })
+  await store3.flush()
+  const detailChild = await store3.sessionDetail('s9')
+  assert.equal(detailChild.degraded, true, '降级模式 detail 仍 degraded')
+  assert.deepEqual(detailChild.byModel, [], '降级模式 byModel 维持 []（不动）')
+  assert.deepEqual(
+    detailChild.children,
+    [{ id: 's9c', parentId: 's9', kind: 'subagent', name: '', requests: 1, failures: 0, turns: 0, tokens: 10, inputTokens: 7, outputTokens: 3, cacheReadTokens: 0, cacheWriteTokens: 0 }],
+    '降级模式 children 照常可用（KV sessions BFS 来源）',
+  )
   await store3.dispose()
 
   console.log('smoke OK: all assertions passed')

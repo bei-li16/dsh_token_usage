@@ -65,11 +65,20 @@ function makeMocks() {
     sessionDetail: async (id) => {
       calls.push(['sessionDetail', id])
       if (id === 'explode') throw new Error('sqlite: cannot open C:\\secret\\facts.db')
+      // v7 wire 形状示例（与 db smoke 的 s1/s2 夹具同数）：children[] +
+      // byModel 四桶。's-degraded' 分支验证降级透传（children 在、byModel 空）。
+      const child = id === 's-degraded'
+        ? { id: 's9c', parentId: 's-degraded', kind: 'subagent', name: '', requests: 1, failures: 0, turns: 0, tokens: 10, inputTokens: 7, outputTokens: 3, cacheReadTokens: 0, cacheWriteTokens: 0 }
+        : { id: 's2', parentId: 's1', kind: 'subagent', name: 'child-agent', requests: 1, failures: 1, turns: 1, tokens: 15, inputTokens: 10, outputTokens: 5, cacheReadTokens: 0, cacheWriteTokens: 0 }
+      const degraded = id === 's-degraded'
       return {
         id, index: null,
         totals: { tokens: 0, inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, reasoningTokens: 0 },
-        requests: 0, failures: 0, avgFirstTokenMs: null, tokensPerSecond: null,
-        byModel: [], records: [], tools: [], degraded: false,
+        requests: 0, failures: 0,
+        children: [child],
+        avgFirstTokenMs: null, tokensPerSecond: null,
+        byModel: degraded ? [] : [{ model: 'gpt-x', provider: 'openai', tokens: 1480, requests: 3, failures: 0, inputTokens: 1100, outputTokens: 350, cacheReadTokens: 20, cacheWriteTokens: 10 }],
+        records: [], tools: [], degraded,
       }
     },
     tools: async (q) => { calls.push(['tools', q]); return { tools: [] } },
@@ -231,6 +240,41 @@ test('session: id 透传，返回 SessionDetailResponse 形状', async () => {
   assert.equal(r.status, 200)
   assert.equal(r.json.value.id, 's1')
   assert.deepEqual(calls.at(-1), ['sessionDetail', 's1'])
+})
+
+test('session: children[] 形状透传（id/name/requests/tokens/四桶）', async () => {
+  const { route } = makeMocks()
+  const r = await call(route, { url: '/usage-ledger/api/session', headers: { ...LOOPBACK }, body: JSON.stringify({ id: 's1' }) })
+  assert.equal(r.status, 200)
+  const child = r.json.value.children[0]
+  assert.deepEqual(
+    [child.id, child.parentId, child.kind, child.name, child.requests, child.failures, child.turns, child.tokens, child.inputTokens, child.outputTokens, child.cacheReadTokens, child.cacheWriteTokens],
+    ['s2', 's1', 'subagent', 'child-agent', 1, 1, 1, 15, 10, 5, 0, 0],
+    'children 行：id/parentId/kind/name + requests/failures/turns + tokens 四桶',
+  )
+})
+
+test('session: byModel 行四桶透传（tokens 仍为 computedTotal 之和）', async () => {
+  const { route } = makeMocks()
+  const r = await call(route, { url: '/usage-ledger/api/session', headers: { ...LOOPBACK }, body: JSON.stringify({ id: 's1' }) })
+  assert.equal(r.status, 200)
+  const m = r.json.value.byModel[0]
+  assert.deepEqual(
+    [m.provider, m.model, m.tokens, m.requests, m.failures, m.inputTokens, m.outputTokens, m.cacheReadTokens, m.cacheWriteTokens],
+    ['openai', 'gpt-x', 1480, 3, 0, 1100, 350, 20, 10],
+    'byModel 行：既有五字段 + input/output/cacheRead/cacheWrite 四桶',
+  )
+})
+
+test('session: degraded 时 children 仍可用（KV 来源）而 byModel 空', async () => {
+  const { route } = makeMocks()
+  const r = await call(route, { url: '/usage-ledger/api/session', headers: { ...LOOPBACK }, body: JSON.stringify({ id: 's-degraded' }) })
+  assert.equal(r.status, 200)
+  assert.equal(r.json.value.degraded, true)
+  assert.deepEqual(r.json.value.byModel, [], 'degraded：byModel 维持 []')
+  assert.equal(r.json.value.children.length, 1, 'degraded：children 仍可用')
+  assert.equal(r.json.value.children[0].id, 's9c')
+  assert.equal(r.json.value.children[0].tokens, 10)
 })
 
 test('tools: 日期范围透传', async () => {

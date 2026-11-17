@@ -9,11 +9,20 @@ Request-level token usage ledger for DeepSeek Harness.
 - **Global panel**: a Usage ledger row in the sidebar opens lifetime summary
   cards, a 52-week heatmap, daily per-model curves, and model/tool
   distribution.
-- **Session view**: each session page gains a Usage tab with that session's
-  own breakdown.
+- **Session view**: each session page gains a Usage tab (`conversation.view`
+  slot) with that session's own breakdown — six metric cards (requests with
+  failure count and rate, total / input / output tokens, cache hit rate,
+  decode speed with average first-token wait), a sub-session table of
+  descendant sessions (sourced from the permanent KV session index, so it
+  stays available even when the SQLite detail backend is degraded), a
+  per-model table with the four token buckets, tool chips, and a live header
+  with 2-second polling and a manual refresh. No per-request detail table —
+  a deliberate design decision.
 
 All data is derived from session logs; recording is observational and never
-interferes with turns. Do not enable together with `dsh-token-total`.
+interferes with turns. Do not enable together with `dsh-token-total`: both
+plugins register a Usage tab on session pages, so running both crowds the
+same tab bar and duplicates the numbers.
 
 ## Backfill semantics (disable / reinstall / upgrade)
 

@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "用量账本",
-    "description": "请求级 token 用量事实库：每次 provider 调用记录为一条事实（token 明细、首 token 等待、解码速度），SQLite 明细保留 30 天，永久日汇总支撑长期统计。侧栏「用量账本」打开全局面板：汇总卡片（总量/峰值日/连续活跃/平均 TTFT/缓存命中率/错误率）、52 周活跃热力图、每日多模型曲线、模型与工具分布。数据只从会话日志派生，采集是观察式的，绝不干扰对话执行。可调项（retentionDays、heatmapWeeks、backfillConcurrency、factsDbPath）在 cordis.patch.yml 的 usage-ledger 行 config 中修改。停用插件即停止采集，已存数据保留，可手动删除。请勿与 dsh-token-total 同时启用——先卸载它。",
+    "description": "请求级 token 用量事实库：每次 provider 调用记录为一条事实（token 明细、首 token 等待、解码速度），SQLite 明细保留 30 天，永久日汇总支撑长期统计。侧栏「用量账本」打开全局面板：汇总卡片（总量/峰值日/连续活跃/平均 TTFT/缓存命中率/错误率）、52 周活跃热力图、每日多模型曲线、模型与工具分布。会话页新增「用量」标签，展示该会话（含子智能体）的用量汇总、子会话与模型分布。数据只从会话日志派生，采集是观察式的，绝不干扰对话执行。可调项（retentionDays、heatmapWeeks、backfillConcurrency、factsDbPath）在 cordis.patch.yml 的 usage-ledger 行 config 中修改。停用插件即停止采集，已存数据保留，可手动删除。请勿与 dsh-token-total 同时启用——先卸载它。",
     "detail": "docs/DETAIL.zh.md"
   }
 }
