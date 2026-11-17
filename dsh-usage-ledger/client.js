@@ -42,7 +42,7 @@ window.__ModuleLoader__.load({
       svDegraded: '明细已超保留期或不可用，仅显示永久汇总。',
       svLive: '实时更新', svAsOf: '统计截至', svRefresh: '刷新',
       svTokens: 'Tokens', svChildren: '子会话', svModels: '模型', svModel: '模型', svHit: '命中率',
-      svCacheHitShort: '缓存命中', svTokPerSec: 'tok/s',
+      svCacheHitShort: '缓存命中', svTokPerSec: 'tok/s', svUnknownModel: '(unknown)',
       svNoChildren: '暂无子会话', svNoModels: '暂无模型数据',
       svTokSpeed: 'token 速度', svScope: '本会话及所有子代理 · 历史日志累计',
       currentContextTitle: '当前上下文', contextUsedShort: '上下文已用',
@@ -78,7 +78,7 @@ window.__ModuleLoader__.load({
       svDegraded: 'Detail has aged out of retention or is unavailable; permanent rollup only.',
       svLive: 'Live', svAsOf: 'as of', svRefresh: 'Refresh',
       svTokens: 'Tokens', svChildren: 'Sub-sessions', svModels: 'Models', svModel: 'Model', svHit: 'Hit',
-      svCacheHitShort: 'cache hit', svTokPerSec: 'tok/s',
+      svCacheHitShort: 'cache hit', svTokPerSec: 'tok/s', svUnknownModel: '(unknown)',
       svNoChildren: 'No sub-sessions', svNoModels: 'No model data',
       svTokSpeed: 'Token speed', svScope: 'This session and all subagents · Historical log totals',
       currentContextTitle: 'Current context', contextUsedShort: 'context used',
@@ -199,7 +199,7 @@ window.__ModuleLoader__.load({
 .ul-hit{color:var(--dsw-alias-state-success-primary,var(--dsw-alias-label-primary))}
 .ul-mdNameCell{display:flex;align-items:center;gap:6px;min-width:0}
 .ul-mdLogo{width:16px;height:16px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;line-height:1;color:var(--dsw-alias-bg-base);background:color-mix(in srgb,var(--dsw-tone-1) 65%,transparent);flex:0 0 auto}
-.ul-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.ul-cards{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
 .ul-card{box-sizing:border-box;padding:12px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);min-width:0}
 .ul-cardLabel{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--dsw-alias-label-tertiary);margin-bottom:4px}
 .ul-cardIcon{display:inline-flex;flex:0 0 auto;color:var(--dsw-alias-label-tertiary)}
@@ -268,7 +268,22 @@ window.__ModuleLoader__.load({
 .ul-sessRow{padding:5px 0;border-bottom:1px solid color-mix(in srgb,var(--dsw-alias-border-l2) 50%,transparent);color:var(--dsw-alias-label-secondary)}
 .ul-cellDim{color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ul-cellNum2{font-variant-numeric:tabular-nums;text-align:right}
-.ul-session{display:flex;flex-direction:column;gap:18px;color:var(--dsw-alias-label-primary);font:inherit;padding:8px 0}
+.ul-session{display:flex;flex-direction:column;color:var(--dsw-alias-label-primary);font:inherit;container-type:inline-size}
+/* Centered, width-capped page (token-total .page): the conversation tab's
+   content never sprawls edge-to-edge; containers above enable @container
+   breakpoints that track the CONTENT width, not the viewport. */
+.ul-svPage{box-sizing:border-box;width:100%;max-width:1160px;margin:0 auto;padding:24px 26px 32px;display:flex;flex-direction:column;gap:18px}
+/* two tables side by side (token-total .mid): sub-sessions | models, each
+   half width; one column when the content gets narrow */
+.ul-mid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:stretch}
+@container (max-width:1050px){
+  .ul-mid{grid-template-columns:minmax(0,1fr)}
+  .ul-cards{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@container (max-width:700px){
+  .ul-svPage{padding:18px 14px 24px}
+  .ul-cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
 .ul-svHead{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
 .ul-svLive{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--dsw-alias-label-secondary)}
 .ul-liveDot{width:8px;height:8px;border-radius:50%;background:var(--dsw-alias-state-success-primary,var(--dsw-tone-1));flex:0 0 auto}
@@ -287,7 +302,7 @@ window.__ModuleLoader__.load({
    and legend value all read that one variable. Hues are this plugin's own
    (artwork exception, same as PALETTE). */
 .ul-svGrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:stretch}
-@media (max-width:1100px){.ul-svGrid{grid-template-columns:1fr}}
+@container (max-width:880px){.ul-svGrid{grid-template-columns:1fr}}
 .ul-ucCard{display:flex;flex-direction:column;min-width:0;box-sizing:border-box;border:1px solid var(--dsw-alias-border-l2);border-radius:10px;background:var(--dsw-alias-bg-layer-1);overflow:hidden}
 .ul-ucHead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px 0}
 .ul-ucTitle{font-size:13px;font-weight:600;color:var(--dsw-alias-label-primary);white-space:nowrap}
@@ -310,7 +325,8 @@ window.__ModuleLoader__.load({
 .ul-ucRingTotal{font-size:17px;font-weight:650;letter-spacing:-.3px;color:var(--dsw-alias-label-primary);font-variant-numeric:tabular-nums}
 .ul-ucRingCaption{font-size:10px;color:var(--dsw-alias-label-tertiary)}
 .ul-ucLegend{flex:1 1 auto;min-width:0;display:grid;grid-template-rows:repeat(4,auto);grid-auto-flow:column;gap:7px 16px}
-@media (max-width:520px){.ul-ucStats{flex-wrap:wrap;justify-content:center}.ul-ucLegend{grid-template-rows:none;grid-auto-flow:row;grid-template-columns:minmax(0,1fr);width:100%}}
+@container (max-width:520px){.ul-ucStats{flex-wrap:wrap;justify-content:center}.ul-ucLegend{grid-template-rows:none;grid-auto-flow:row;grid-template-columns:minmax(0,1fr);width:100%}}
+.ul-mdLogoDot{border-radius:50%}
 .ul-ucRow{display:grid;grid-template-columns:7px minmax(0,1fr) auto auto;align-items:center;gap:6px;min-width:0;font-size:11px}
 .ul-ucSwatch{width:7px;height:7px;border-radius:50%;background:var(--ul-bucket)}
 .ul-ucName{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-secondary)}
@@ -1349,11 +1365,12 @@ body[data-ds-dark-theme] .ul-tone-output{--ul-bucket:#ff85c0}
       if (!data) {
         return h('div', { className: 'ul-session' },
           h('style', null, CSS),
-          head,
-          h('div', { className: 'ul-scopeNote' }, t('svScope')),
-          loading || error
-            ? h(LoadState, { state: { loading, error, retry: refresh } })
-            : h('div', { className: 'ul-note' }, t('empty')))
+          h('div', { className: 'ul-svPage' },
+            head,
+            h('div', { className: 'ul-scopeNote' }, t('svScope')),
+            loading || error
+              ? h(LoadState, { state: { loading, error, retry: refresh } })
+              : h('div', { className: 'ul-note' }, t('empty'))))
       }
       const d = data
       const hit = hitRateOf(d.totals.inputTokens, d.totals.cacheReadTokens, d.totals.cacheWriteTokens)
@@ -1366,97 +1383,106 @@ body[data-ds-dark-theme] .ul-tone-output{--ul-bucket:#ff85c0}
       const hitOf = (r) => hitRateOf(r.inputTokens, r.cacheReadTokens, r.cacheWriteTokens)
       return h('div', { className: 'ul-session' },
         h('style', null, CSS),
-        head,
-        h('div', { className: 'ul-scopeNote' }, t('svScope')),
-        error ? h('div', { className: 'ul-error' },
-          h('span', null, `${t('loadError')}: ${error.message}`),
-          h('button', { type: 'button', onClick: refresh }, t('retry'))) : null,
-        // six metric cards, aligned with token-total's Metrics row
-        h('section', { className: 'ul-sec' },
-          h('div', { className: 'ul-secTitle' }, t('svTotals')),
-          h('div', { className: 'ul-cards' },
-            h(Card, {
-              label: t('requests'), icon: cardIcon(CARD_ICON_D.requests),
-              value: fmtInt(d.requests), sub: `${t('failures')} ${fmtInt(d.failures)} · ${failRate}%`,
-            }),
-            h(Card, {
-              label: t('svTokens'), icon: cardIcon(CARD_ICON_D.tokens),
-              value: fmtTok(d.totals.tokens), title: fmtInt(d.totals.tokens),
-              sub: `${fmtInt(d.totals.tokens)} ${t('sTok')}`,
-            }),
-            h(Card, {
-              label: t('inputTok'), icon: cardIcon(CARD_ICON_D.input),
-              value: fmtTok(d.totals.inputTokens), title: fmtInt(d.totals.inputTokens), sub: fmtInt(d.totals.inputTokens),
-            }),
-            h(Card, {
-              label: t('outputTok'), icon: cardIcon(CARD_ICON_D.output),
-              value: fmtTok(d.totals.outputTokens), title: fmtInt(d.totals.outputTokens), sub: fmtInt(d.totals.outputTokens),
-            }),
-            h(Card, {
-              label: t('cacheHit'), icon: cardIcon(CARD_ICON_D.hit),
-              value: hit === null ? t('na') : h('span', { className: 'ul-hit' }, fmtPct(hit)),
-              sub: hit === null ? null : `${fmtTok(d.totals.cacheReadTokens)} ${t('svCacheHitShort')}`,
-            }),
-            h(Card, {
-              label: t('decodeSpeed'), icon: cardIcon(CARD_ICON_D.speed),
-              value: d.tokensPerSecond == null ? t('na') : `${Math.round(d.tokensPerSecond)} ${t('svTokPerSec')}`,
-              sub: `${t('avgTtft')} ${fmtSec(d.avgFirstTokenMs)}`,
-            }))),
-        d.degraded ? h('div', { className: 'ul-banner' }, t('svDegraded')) : null,
-        // sub-session table (children[], KV-sourced: works even degraded)
-        h('section', { className: 'ul-sec' },
-          h('div', { className: 'ul-secTitle' }, t('svChildren'),
-            h('span', { className: 'ul-count' }, fmtInt(children.length))),
-          children.length === 0
-            ? h('div', { className: 'ul-note' }, t('svNoChildren'))
-            : h(React.Fragment, null,
-                h('div', { className: 'ul-table ul-chHead' },
-                  h('span', null, t('sName')), h('span', null, t('sReq')), h('span', null, t('sTok')),
-                  h('span', null, t('svHit')), h('span', null, t('avgTtft')), h('span', null, t('svTokSpeed')), h('span', null, t('sKind'))),
-                children.map((c) => h('div', { key: c.id, className: 'ul-table ul-chRow' },
-                  h('span', { className: 'ul-cellName', title: c.name || c.id }, c.name || c.id),
-                  h('span', { className: 'ul-cellNum2' }, fmtInt(c.requests)),
-                  h('span', { className: 'ul-cellNum2' }, fmtTok(c.tokens)),
-                  h('span', { className: 'ul-cellNum2 ul-hit' }, hitOf(c) === null ? t('na') : fmtPct(hitOf(c))),
-                  h('span', { className: 'ul-cellNum2' }, fmtSec(c.avgFirstTokenMs)),
-                  h('span', { className: 'ul-cellNum2' }, c.tokensPerSecond == null ? t('na') : fmtSpeed(c.tokensPerSecond)),
-                  h('span', null, t(KIND_LABEL[c.kind] || 'kindMain')))))),
-        // per-model table (byModel[], needs SQLite detail → empty degraded)
-        h('section', { className: 'ul-sec' },
-          h('div', { className: 'ul-secTitle' }, t('svModels'),
-            h('span', { className: 'ul-count' }, fmtInt(byModel.length))),
-          byModel.length === 0
-            ? h('div', { className: 'ul-note' }, t('svNoModels'))
-            : h(React.Fragment, null,
-                h('div', { className: 'ul-table ul-mdHead' },
-                  h('span', null, t('svModel')), h('span', null, t('sReq')),
-                  h('span', null, t('inputTok')), h('span', null, t('outputTok')),
-                  h('span', null, t('cacheReadTok')), h('span', null, t('cacheWriteTok')),
-                  h('span', null, t('svHit'))),
-                byModel.map((m) => {
-                  // display name when the wire carries one, route id otherwise
-                  const name = (typeof m.name === 'string' && m.name.trim()) ? m.name : (m.model || t('na'))
-                  // logo letter = first letter/digit (so "(unknown)" reads "U", not "(")
-                  const letter = ((name.match(/[a-z0-9]/i) || ['?'])[0]).toUpperCase()
-                  return h('div', { key: `${m.provider}/${m.model}`, className: 'ul-table ul-mdRow' },
-                    h('span', { className: 'ul-mdNameCell' },
-                      h('span', { className: 'ul-mdLogo', 'aria-hidden': true }, letter),
-                      h('span', { className: 'ul-cellName', title: m.model }, name)),
-                    h('span', { className: 'ul-cellNum2' }, fmtInt(m.requests)),
-                    h('span', { className: 'ul-cellNum2' }, fmtTok(m.inputTokens)),
-                    h('span', { className: 'ul-cellNum2' }, fmtTok(m.outputTokens)),
-                    h('span', { className: 'ul-cellNum2' }, fmtTok(m.cacheReadTokens)),
-                    h('span', { className: 'ul-cellNum2' }, fmtTok(m.cacheWriteTokens)),
-                    h('span', { className: 'ul-cellNum2 ul-hit' }, hitOf(m) === null ? t('na') : fmtPct(hitOf(m))))
-                }))),
-        // the two live cards between the tables and the tool chips
-        h(UsageCards, { context: d.context ?? null, composition: d.composition ?? null }),
-        // tool chips (our extra; token-total has no equivalent)
-        tools.length === 0 ? null : h('section', { className: 'ul-sec' },
-          h('div', { className: 'ul-secTitle' }, t('svTools')),
-          h('div', { className: 'ul-toolMini' },
-            tools.map((tool) => h('span', { key: tool.name, className: 'ul-chip' },
-              `${tool.name} · ${fmtInt(tool.calls)}${tool.failures > 0 ? ` (${fmtInt(tool.failures)}✗)` : ''}`)))))
+        h('div', { className: 'ul-svPage' },
+          head,
+          h('div', { className: 'ul-scopeNote' }, t('svScope')),
+          error ? h('div', { className: 'ul-error' },
+            h('span', null, `${t('loadError')}: ${error.message}`),
+            h('button', { type: 'button', onClick: refresh }, t('retry'))) : null,
+          // six metric cards, aligned with token-total's Metrics row
+          h('section', { className: 'ul-sec' },
+            h('div', { className: 'ul-secTitle' }, t('svTotals')),
+            h('div', { className: 'ul-cards' },
+              h(Card, {
+                label: t('requests'), icon: cardIcon(CARD_ICON_D.requests),
+                value: fmtInt(d.requests), sub: `${t('failures')} ${fmtInt(d.failures)} · ${failRate}%`,
+              }),
+              h(Card, {
+                label: t('svTokens'), icon: cardIcon(CARD_ICON_D.tokens),
+                value: fmtTok(d.totals.tokens), title: fmtInt(d.totals.tokens),
+                sub: `${fmtInt(d.totals.tokens)} ${t('sTok')}`,
+              }),
+              h(Card, {
+                label: t('inputTok'), icon: cardIcon(CARD_ICON_D.input),
+                value: fmtTok(d.totals.inputTokens), title: fmtInt(d.totals.inputTokens), sub: fmtInt(d.totals.inputTokens),
+              }),
+              h(Card, {
+                label: t('outputTok'), icon: cardIcon(CARD_ICON_D.output),
+                value: fmtTok(d.totals.outputTokens), title: fmtInt(d.totals.outputTokens), sub: fmtInt(d.totals.outputTokens),
+              }),
+              h(Card, {
+                label: t('cacheHit'), icon: cardIcon(CARD_ICON_D.hit),
+                value: hit === null ? t('na') : h('span', { className: 'ul-hit' }, fmtPct(hit)),
+                sub: hit === null ? null : `${fmtTok(d.totals.cacheReadTokens)} ${t('svCacheHitShort')}`,
+              }),
+              h(Card, {
+                label: t('decodeSpeed'), icon: cardIcon(CARD_ICON_D.speed),
+                value: d.tokensPerSecond == null ? t('na') : `${Math.round(d.tokensPerSecond)} ${t('svTokPerSec')}`,
+                sub: `${t('avgTtft')} ${fmtSec(d.avgFirstTokenMs)}`,
+              }))),
+          d.degraded ? h('div', { className: 'ul-banner' }, t('svDegraded')) : null,
+          // sub-session | models: side by side, half width each (token-total .mid)
+          h('div', { className: 'ul-mid' },
+            h('section', { className: 'ul-sec' },
+              h('div', { className: 'ul-secTitle' }, t('svChildren'),
+                h('span', { className: 'ul-count' }, fmtInt(children.length))),
+              children.length === 0
+                ? h('div', { className: 'ul-note' }, t('svNoChildren'))
+                : h(React.Fragment, null,
+                    h('div', { className: 'ul-table ul-chHead' },
+                      h('span', null, t('sName')), h('span', null, t('sReq')), h('span', null, t('sTok')),
+                      h('span', null, t('svHit')), h('span', null, t('avgTtft')), h('span', null, t('svTokSpeed')), h('span', null, t('sKind'))),
+                    children.map((c) => h('div', { key: c.id, className: 'ul-table ul-chRow' },
+                      h('span', { className: 'ul-cellName', title: c.name || c.id }, c.name || c.id),
+                      h('span', { className: 'ul-cellNum2' }, fmtInt(c.requests)),
+                      h('span', { className: 'ul-cellNum2' }, fmtTok(c.tokens)),
+                      h('span', { className: 'ul-cellNum2 ul-hit' }, hitOf(c) === null ? t('na') : fmtPct(hitOf(c))),
+                      h('span', { className: 'ul-cellNum2' }, fmtSec(c.avgFirstTokenMs)),
+                      h('span', { className: 'ul-cellNum2' }, c.tokensPerSecond == null ? t('na') : fmtSpeed(c.tokensPerSecond)),
+                      h('span', null, t(KIND_LABEL[c.kind] || 'kindMain')))))),
+            h('section', { className: 'ul-sec' },
+              h('div', { className: 'ul-secTitle' }, t('svModels'),
+                h('span', { className: 'ul-count' }, fmtInt(byModel.length))),
+              byModel.length === 0
+                ? h('div', { className: 'ul-note' }, t('svNoModels'))
+                : h(React.Fragment, null,
+                    h('div', { className: 'ul-table ul-mdHead' },
+                      h('span', null, t('svModel')), h('span', null, t('sReq')),
+                      h('span', null, t('inputTok')), h('span', null, t('outputTok')),
+                      h('span', null, t('cacheReadTok')), h('span', null, t('cacheWriteTok')),
+                      h('span', null, t('svHit'))),
+                    byModel.map((m) => {
+                      // display name when the wire carries one, route id otherwise;
+                      // neither resolvable → the unknown placeholder, never "?"
+                      const hasName = typeof m.name === 'string' && m.name.trim()
+                      const hasModel = typeof m.model === 'string' && m.model.trim()
+                      const name = hasName ? m.name : (hasModel ? m.model : t('svUnknownModel'))
+                      // logo = first letter/digit badge; unknown row gets a
+                      // colored dot instead
+                      const letter = hasName || hasModel
+                        ? ((name.match(/[a-z0-9]/i) || ['?'])[0]).toUpperCase()
+                        : null
+                      return h('div', { key: `${m.provider}/${m.model}`, className: 'ul-table ul-mdRow' },
+                        h('span', { className: 'ul-mdNameCell' },
+                          h('span', {
+                            className: letter === null ? 'ul-mdLogo ul-mdLogoDot' : 'ul-mdLogo', 'aria-hidden': true,
+                          }, letter),
+                          h('span', { className: 'ul-cellName', title: m.model || name }, name)),
+                        h('span', { className: 'ul-cellNum2' }, fmtInt(m.requests)),
+                        h('span', { className: 'ul-cellNum2' }, fmtTok(m.inputTokens)),
+                        h('span', { className: 'ul-cellNum2' }, fmtTok(m.outputTokens)),
+                        h('span', { className: 'ul-cellNum2' }, fmtTok(m.cacheReadTokens)),
+                        h('span', { className: 'ul-cellNum2' }, fmtTok(m.cacheWriteTokens)),
+                        h('span', { className: 'ul-cellNum2 ul-hit' }, hitOf(m) === null ? t('na') : fmtPct(hitOf(m))))
+                    })))),
+          // the two live cards between the tables and the tool chips
+          h(UsageCards, { context: d.context ?? null, composition: d.composition ?? null }),
+          // tool chips (our extra; token-total has no equivalent)
+          tools.length === 0 ? null : h('section', { className: 'ul-sec' },
+            h('div', { className: 'ul-secTitle' }, t('svTools')),
+            h('div', { className: 'ul-toolMini' },
+              tools.map((tool) => h('span', { key: tool.name, className: 'ul-chip' },
+                `${tool.name} · ${fmtInt(tool.calls)}${tool.failures > 0 ? ` (${fmtInt(tool.failures)}✗)` : ''}`))))))
     }
 
     // ── panel assembly ─────────────────────────────────────────────────────
