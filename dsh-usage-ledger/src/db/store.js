@@ -92,6 +92,8 @@ export function createLedgerStore({ storageDomain, config, logger }) {
   let sqliteError = null
   let kvError = null
   let recordFailures = 0
+  // 最近失败原因环（诊断用，/status 透出）：只留最后 8 条 sanitize 后的错误。
+  const recentFailures = []
   let lastPruneDay = null
   /** 降级模式的 delta 基准：id → 最近一次归一化 fact。 */
   const recentFacts = new Map()
@@ -127,6 +129,8 @@ export function createLedgerStore({ storageDomain, config, logger }) {
         return await job()
       } catch (err) {
         recordFailures += 1
+        recentFailures.push(`${new Date().toISOString()} ${sanitizeError(err)}`)
+        if (recentFailures.length > 8) recentFailures.shift()
         log.warn(`[dsh-usage-ledger] record job failed: ${sanitizeError(err)}`)
       }
     })
@@ -777,6 +781,8 @@ export function createLedgerStore({ storageDomain, config, logger }) {
         kvDays: kv ? kv.days.size : 0,
         kvSessions: kv ? kv.sessions.size : 0,
         recordFailures,
+        // 诊断：最近写入失败的 sanitize 后原因（最新在末尾，最多 8 条）。
+        recentFailures: [...recentFailures],
         lastPruneDay,
         // backfill 运行态归 collector 管；routes 合并时覆盖此占位。
         backfill: { running: false, total: 0, done: 0, scannedSessions: 0 },
