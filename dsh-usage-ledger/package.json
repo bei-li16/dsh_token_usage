@@ -3,7 +3,7 @@
   "version": "0.1.5",
   "private": true,
   "type": "module",
-  "description": "Request-level token usage ledger for DeepSeek Harness: SQLite request/tool detail (30-day rolling) plus permanent per-day rollups, a global statistics panel in the sidebar, and a per-session usage view.",
+  "description": "Request-level token usage ledger for DeepSeek Harness: SQLite request/tool detail (30-day rolling) plus permanent per-day rollups and a global statistics panel in the sidebar.",
   "icon": "./icon.svg",
   "keywords": [
     "dsh",

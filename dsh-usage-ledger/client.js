@@ -1147,9 +1147,9 @@ window.__ModuleLoader__.load({
         ctx.slots.inject('plugins.bundle.config', () => ctx.slots.register({
           name: 'plugins.bundle.config', key: 'dsh-usage-ledger', locale: LOCALE_NS,
         }, Section))
-        ctx.slots.inject('conversation.view', () => ctx.slots.register({
-          name: 'conversation.view', id: 'usage-ledger-usage', order: 21, label: () => t('tab'), locale: LOCALE_NS,
-        }, SessionUsageView))
+        // 会话页「用量」页签已移除（用户决定：会话页不再挂本插件视图，
+        // 避免与 token-total / cost-meter 的会话入口挤占页签栏）。
+        // SessionUsageView 组件保留在源码中，需要时恢复一段 register 即可。
       },
     }
   },
