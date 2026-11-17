@@ -10,6 +10,7 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { DatabaseSync } from 'node:sqlite'
 import { createLedgerStore } from './store.js'
 import { DOMAIN_SPEC } from './kv.js'
 import { todayKey, dayMinus } from '../contract.js'
@@ -243,6 +244,8 @@ async function main() {
   assert.equal(statusAfterPrune.toolRows, 3, 'tool 明细无超期行')
   assert.equal(statusAfterPrune.lastPruneDay, today)
   assert.equal(statusAfterPrune.kvDays, 3, 'KV rollup 不随 prune 删除')
+  // delta 锚（request_anchor + tool_anchor）不随 prune 删除：6 request + 3 tool。
+  assert.equal(statusAfterPrune.anchorRows, 9, 'prune 不删 delta 锚（永久 KV delta 基准）')
   const summaryAfterPrune = await store.summary()
   assert.equal(summaryAfterPrune.tokens, 1585, 'prune 后 rollup 总额不变')
   const detailAfterPrune = await store.sessionDetail('s1')
@@ -259,6 +262,21 @@ async function main() {
   assert.equal(reopenedDetail.records.length, 5, '重开后 SQLite 明细仍在')
   const reopenedCursor = await store2.cursorState()
   assert.equal(reopenedCursor.cursor.liveFirstSeq.s1, 42, '重开后 cursor 仍在')
+
+  // ── delta 锚跨 prune 幂等（2026-11-17 双计修复）：重放「明细已被 prune 的
+  //    旧事实」→ old 走永久锚 → delta 0 → KV day/session 计数严格不变 ──
+  store2.recordRequest({ id: 's1:9:1:0', sessionId: 's1', parentId: null, kind: 'main', turn: 9, step: 1, attempt: 0, time: at(day40, 10), finishedAt: at(day40, 10) + 900, provider: 'openai', model: 'gpt-x', status: 'completed', inputTokens: 800, outputTokens: 200 })
+  store2.recordToolCall({ id: 's1:c40', sessionId: 's1', parentId: null, kind: 'main', turn: 9, step: 2, name: 'pwsh', time: at(day40, 11), finishedAt: at(day40, 11) + 40, status: 'completed', durationMs: 40 })
+  await store2.flush()
+  const anchorSum = await store2.summary()
+  assert.equal(anchorSum.tokens, 1585, '锚幂等：重放被 prune 的旧请求不重复累加')
+  assert.equal(anchorSum.toolCalls, 4, '锚语义：新工具事实首次计数（3+1）')
+  // 同一旧工具事实再放一次 → 锚命中 → 严格不变。
+  store2.recordToolCall({ id: 's1:c40', sessionId: 's1', parentId: null, kind: 'main', turn: 9, step: 2, name: 'pwsh', time: at(day40, 11), finishedAt: at(day40, 11) + 40, status: 'completed', durationMs: 40 })
+  await store2.flush()
+  assert.equal((await store2.summary()).toolCalls, 4, '锚幂等：工具事实重放严格幂等')
+  const anchorSessionRows = await store2.sessions({ q: 'root' })
+  assert.equal(anchorSessionRows.rows[0].tokens, 1570, '锚幂等：session 行 tokens 不变')
 
   // ── 会话高水位（lastSeq）：disable/enable 断档检测的基准 ────────────────
   // kv schema 往返：老行（无 lastSeq）默认 -1，新行原样保留。
@@ -279,6 +297,15 @@ async function main() {
   await store2.markSessionSeq('no-such-row', 5)
   assert.equal(await store2.sessionHighSeq('no-such-row'), null, 'markSessionSeq 不建行（空会话不污染索引）')
 
+  // ── turn_anchor 重放护栏：同一 (session, seq) 的 marker 重放不重复计 turns ──
+  const turnsBefore = (await store2.summary()).turns
+  store2.recordTurn({ sessionId: 'hw', parentId: null, kind: 'main', time: at(today, 7, 2), day: today, seq: 17 })
+  await store2.flush()
+  assert.equal((await store2.summary()).turns, turnsBefore, 'turn_anchor：重放同一 (session, seq) marker 不重复计 turns')
+  store2.recordTurn({ sessionId: 'hw', parentId: null, kind: 'main', time: at(today, 7, 3), day: today, seq: 18 })
+  await store2.flush()
+  assert.equal((await store2.summary()).turns, turnsBefore + 1, 'turn_anchor：新 seq marker 正常计数')
+
   // ── reset：清空 + cursor 置边界 ────────────────────────────────────────
   await store2.reset(new Map([['s1', 7]]))
   const afterReset = await store2.summary()
@@ -289,7 +316,32 @@ async function main() {
   assert.deepEqual(resetCursor.cursor.backfilledSessions, [], 'reset 清空 backfilled')
   assert.deepEqual(resetCursor.cursor.liveFirstSeq, { s1: 7 }, 'reset 置 live 边界')
   assert.equal((await store2.sessions({})).total, 0, 'reset 清空 sessions')
+  // reset 清 delta 锚（否则重录事实会 delta-0 到刚被清空的 KV 上）：重录从零起算。
+  store2.recordRequest({ id: 's1:1:1:0', sessionId: 's1', parentId: null, kind: 'main', turn: 1, step: 1, attempt: 0, time: at(today, 3), finishedAt: at(today, 3) + 1200, provider: 'openai', model: 'gpt-x', status: 'completed', inputTokens: 100, outputTokens: 50, cacheReadTokens: 20, cacheWriteTokens: 10, firstTokenMs: 200, decodeMs: 1000 })
+  await store2.flush()
+  assert.equal((await store2.summary()).tokens, 180, 'reset 清 delta 锚：重录事实从零起算（100+50+20+10）')
   await store2.dispose()
+
+  // ── 0.1.2 → 0.1.3 升级迁移：明细行在、锚表为空（旧库）→ open 补种 → 幂等保持 ──
+  {
+    const store4 = makeStore({ storageDomain, config: { retentionDays: 30, factsDbPath }, logger })
+    await store4.ready()
+    store4.recordRequest({ id: 'mig:1:1:0', sessionId: 'mig', parentId: null, kind: 'main', turn: 1, step: 1, attempt: 0, time: at(day40, 11), finishedAt: at(day40, 11) + 100, provider: 'p', model: 'm', status: 'completed', inputTokens: 10, outputTokens: 5 })
+    await store4.flush()
+    assert.equal((await store4.summary()).tokens, 195, '迁移前奏：既有 180 + 新记 15')
+    await store4.dispose()
+    // 模拟 0.1.2 旧库：明细行在、锚表为空。
+    const raw = new DatabaseSync(factsDbPath)
+    raw.exec('DELETE FROM request_anchor; DELETE FROM tool_anchor; DELETE FROM turn_anchor')
+    raw.close()
+    const store5 = makeStore({ storageDomain, config: { retentionDays: 30, factsDbPath }, logger })
+    await store5.ready()
+    store5.recordRequest({ id: 'mig:1:1:0', sessionId: 'mig', parentId: null, kind: 'main', turn: 1, step: 1, attempt: 0, time: at(day40, 11), finishedAt: at(day40, 11) + 100, provider: 'p', model: 'm', status: 'completed', inputTokens: 10, outputTokens: 5 })
+    await store5.flush()
+    assert.equal((await store5.summary()).tokens, 195, '升级迁移：open 把存活明细行补种进锚表 → 窗口内事实重放幂等')
+    assert.ok(store5.status().anchorRows > 0, '升级迁移：锚表已补种')
+    await store5.dispose()
+  }
 
   // ── 降级路径：factsDbPath 不可写 → 纯 KV，rollup 照记 ──────────────────
   const blocker = join(tmp, 'blocker')

@@ -51,6 +51,43 @@ function normalizeConfig(config) {
 }
 
 /**
+ * /reset replay boundary for ONE live session (drain-gap fix, 2026-11-17).
+ *
+ * The post-reset rescan replays exactly [0, boundary) per session (collector
+ * partition: [0, boundary) is backfill's span, [boundary, ∞) the live pass's
+ * — never both, never neither). store.reset() wipes the KV rollups and the
+ * live chain never re-observes a past event, so the boundary must cover
+ * every event the live chain has ALREADY observed and counted this
+ * activation: the replay prefix is the only path that can re-land them.
+ *
+ * `persistedEnd` is an EXCLUSIVE end — normally handle.seq, the host
+ * JsonlSessionHandle's persisted length. Live events buffer in the host and
+ * "drain through the same chain" in a bounded batch window, so at wipe time
+ * the persisted log typically ends BELOW what the live chain has already
+ * seen (seq >= handle.seq). Callers fall back to the store's previous live
+ * watermark, then the -1 "replay nothing" sentinel. `liveHighSeq` is the
+ * collector's max live-observed seq this activation — an INCLUSIVE 0-based
+ * event seq — hence the +1: the event AT the high-water must fall inside
+ * [0, boundary). Timing is safe: the buffered events reach the log within
+ * the host's own batch timer (seconds), while the rescan reaches this
+ * session minutes later — by replay time the prefix is fully materialized
+ * on disk.
+ *
+ * @param {number} [persistedEnd] exclusive persisted end (length / prior watermark)
+ * @param {number} [liveHighSeq] inclusive max live-observed seq (this activation)
+ * @returns {number} the exclusive replay boundary
+ */
+export function resetReplayBoundary(persistedEnd, liveHighSeq) {
+  const base = typeof persistedEnd === 'number' && Number.isFinite(persistedEnd) && persistedEnd >= 0
+    ? persistedEnd
+    : -1
+  if (typeof liveHighSeq !== 'number' || !Number.isFinite(liveHighSeq) || liveHighSeq < 0) return base
+  // Inclusive live high-water → exclusive boundary: cover the event at seq
+  // liveHighSeq itself, not only the ones below it.
+  return Math.max(base, liveHighSeq + 1)
+}
+
+/**
  * The store is a PROCESS-level singleton, keyed on globalThis. A hot reload
  * (fiber dispose + re-import + fresh apply()) constructs a fresh plugin whose
  * storageDomain.open('usage_ledger') would otherwise hit "already-open" — the
@@ -120,7 +157,10 @@ export function apply(ctx, rawConfig = {}) {
 
   // /reset rebuild pipeline: concurrent callers coalesce into one in-flight
   // run instead of racing it. Live sessions are watermarked at wipe time (see
-  // dsh-token-total's resetAndRescan for why the boundary must be re-sampled).
+  // dsh-token-total's resetAndRescan for why the boundary must be re-sampled);
+  // the watermark is max(persisted end, live high-water + 1) so the replay
+  // prefix also covers events counted live but not yet drained to the log
+  // (drain-gap fix, 2026-11-17 — see resetReplayBoundary).
   let resetInFlight = /** @type {Promise<void>|null} */ (null)
   const isRebuilding = () => resetInFlight !== null
   const resetAndRescan = () => {
@@ -130,12 +170,21 @@ export function apply(ctx, rawConfig = {}) {
       const boundaries = new Map()
       for (const handle of ctx.sessions.list()) {
         const seq = handle.seq
-        if (typeof seq === 'number' && Number.isFinite(seq) && seq >= 0) {
-          boundaries.set(handle.id, seq)
-          continue
-        }
-        const old = previous.get(handle.id)
-        boundaries.set(handle.id, typeof old === 'number' ? old : -1)
+        // Persisted end: handle.seq (the JsonlSessionHandle's persisted
+        // length) when usable; else the store's last live watermark; else -1.
+        const persisted = typeof seq === 'number' && Number.isFinite(seq) && seq >= 0
+          ? seq
+          : previous.get(handle.id)
+        // Drain-gap fix (2026-11-17): events already observed live but still
+        // in the host's drain buffer (seq >= handle.seq) were counted into
+        // the KV rollups that store.reset() is about to wipe, and the live
+        // chain will never re-observe them — only the replay prefix can
+        // re-land them, so the boundary must also cover the live high-water
+        // (see resetReplayBoundary for the exclusive/inclusive +1 detail).
+        boundaries.set(handle.id, resetReplayBoundary(
+          typeof persisted === 'number' ? persisted : -1,
+          collector.liveHighSeqOf(handle.id),
+        ))
       }
       await store.reset(boundaries)
       await rescan()

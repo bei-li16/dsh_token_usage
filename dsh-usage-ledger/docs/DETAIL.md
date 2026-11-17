@@ -31,3 +31,29 @@
   owned by its parent's own pass (an observed seeded child overlapped its
   parent's log by ~6.3M tokens), so skipping it is what prevents
   cross-session double counting.
+- **Degraded (KV-only) mode limitation**: when the SQLite detail backend
+  fails to open, the plugin degrades to pure-KV operation and the delta base
+  falls back to an in-process recent-facts map (capped at 10000 with FIFO
+  eviction, and pruned together with the 30-day retention window). In that
+  degraded mode, replaying a fact older than the retention window can still
+  double-accumulate KV counts — the same class of defect as the SQLite-mode
+  double-count fixed in 0.1.3. In normal mode the permanent delta anchors
+  (request / tool / turn) survive prune and cover every replay path; for
+  degraded mode, restore the SQLite backend (remount / restart) and run
+  `POST /usage-ledger/api/reset` to rebuild a calibrated state.
+- **Replay idempotence across the prune window (0.1.3)**: the KV rollup
+  delta base is a set of permanent anchor rows (`request_anchor` /
+  `tool_anchor` / `turn_anchor`) in the SQLite database, not the 30-day
+  detail rows. A prune deletes detail rows; anchors survive it, and only
+  `/reset` clears them (it wipes the KV side too, so the pairing holds).
+  Replaying any already-counted fact therefore computes a delta of zero
+  even when its detail row has been pruned; turn markers dedupe on
+  `(session, seq)`. Before 0.1.3 the delta base was the prunable detail row,
+  so a post-prune replay of an old fact saw `old = null` and blindly
+  re-added its tokens to the permanent rollups — release acceptance
+  observed six days at exactly 2×, all older than the 30-day cutoff, after a
+  remount window let the startup sweep re-replay sessions whose
+  high-watermarks read behind. The sweep × prune interaction is now safe in
+  both directions: a caught-up session costs one read-only pass, and a
+  behind or stale-marked session's full re-replay is strictly idempotent.
+  `/status` reports the anchor count as `anchorRows`.

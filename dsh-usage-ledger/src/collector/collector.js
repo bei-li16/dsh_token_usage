@@ -144,6 +144,17 @@ export class LedgerCollector {
     this.sessions = null
   }
 
+  /** Read-only accessor for the /reset watermark (drain-gap fix, 2026-11-17):
+   *  the max event seq the live chain observed for this session THIS
+   *  activation (undefined when never seen live). Pure lookup — no state
+   *  change. Consumed by index.js's resetAndRescan so the replay prefix
+   *  [0, boundary) also covers events already counted live but still sitting
+   *  in the host's drain buffer (seq >= handle.seq). */
+  liveHighSeqOf(id) {
+    const seq = this.liveHighSeq.get(id)
+    return typeof seq === 'number' && Number.isFinite(seq) && seq >= 0 ? seq : undefined
+  }
+
   // ── live capture ──────────────────────────────────────────────────────────
 
   /**

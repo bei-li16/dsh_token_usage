@@ -7,9 +7,12 @@
 //   只计入 recordFailures / status，绝不向宿主抛出。队列同时充当 cursor
 //   读-改-写的串行化链（token-total 的 cursorChain 等价物），所以 KV 行可以
 //   用简单的 get→put 而不怕 lost update。
-// - upsert 纠偏用 delta 语义：先取旧行（SQLite 或降级时的进程内
-//   recentFacts），旧贡献从旧 key 上减去、新贡献加到新 key上，因此
-//   status 转换（running→completed/failed）与跨天/跨模型修正都收敛。
+// - upsert 纠偏用 delta 语义：先取旧行（SQLite 的永久 delta 锚 request_anchor /
+//   tool_anchor——prune 永不删除；降级时的进程内 recentFacts），旧贡献从旧 key
+//   上减去、新贡献加到新 key上，因此 status 转换（running→completed/failed）与
+//   跨天/跨模型修正都收敛，且同一事实的任意次重放（含跨 30 天 prune 窗口）对
+//   KV 严格幂等（2026-11-17 双计事故修复：delta 基准曾依赖可被 prune 清空的
+//   明细行，旧事实重放时 old=null → 盲目 +add → 六天恰好翻倍）。
 // - 降级：SQLite 打不开 → 纯 KV（detail 查询 degraded:true，rollup 照记，
 //   delta 基准退到 recentFacts Map；重启后由 backfill cursor 保证不重放）；
 //   KV 打不开 → 纯 SQLite（cursor 方法报明确错误，collector 会 catch）。
@@ -308,8 +311,18 @@ export function createLedgerStore({ storageDomain, config, logger }) {
         const f = normalizeRequestFact(fact)
         // prune 节流：每天第一次写入顺带 prune 一次。
         if (lastPruneDay !== todayKey()) await pruneImpl()
-        const old = sqlite ? sqlite.getRequest(f.id) : recentFacts.get(f.id)
-        if (sqlite) sqlite.upsertRequest(f)
+        // Delta base (2026-11-17 double-count fix): the PERMANENT anchor row,
+        // not the prunable detail row. A detail row is deleted once its day
+        // falls below the retention cutoff, so keying the delta on it turned
+        // any post-prune replay of an old fact into old=null → applyDelta
+        // blindly +add → the KV rollups doubled (release acceptance observed
+        // six days at exactly 2×). Anchors survive prune; only reset clears
+        // them (a full rebuild wipes the KV side too, so the pairing holds).
+        const old = sqlite ? (sqlite.getRequestAnchor(f.id) ?? sqlite.getRequest(f.id)) : recentFacts.get(f.id)
+        if (sqlite) {
+          sqlite.upsertRequest(f)
+          sqlite.upsertRequestAnchor(f)
+        }
         await applyRequestDelta(f, old)
         if (!sqlite) {
           recentFacts.set(f.id, f)
@@ -324,8 +337,12 @@ export function createLedgerStore({ storageDomain, config, logger }) {
     recordToolCall(fact) {
       void enqueue(async () => {
         const f = normalizeToolFact(fact)
-        const old = sqlite ? sqlite.getTool(f.id) : recentFacts.get(f.id)
-        if (sqlite) sqlite.upsertTool(f)
+        // Delta base = permanent anchor (see recordRequest; same fix).
+        const old = sqlite ? (sqlite.getToolAnchor(f.id) ?? sqlite.getTool(f.id)) : recentFacts.get(f.id)
+        if (sqlite) {
+          sqlite.upsertTool(f)
+          sqlite.upsertToolAnchor(f)
+        }
         await applyToolDelta(f, old)
         if (!sqlite) {
           recentFacts.set(f.id, f)
@@ -340,6 +357,17 @@ export function createLedgerStore({ storageDomain, config, logger }) {
     recordTurn(marker) {
       void enqueue(async () => {
         if (!kv || !marker || typeof marker.sessionId !== 'string') return
+        // Replay guard (2026-11-17 double-count fix): turn markers carry no
+        // fact id, so a replay re-emitting an already-counted marker would
+        // blindly +1 the turns counters again (the incident doubled turns the
+        // same way it doubled tokens). The permanent (session, seq) anchor
+        // makes re-delivered markers a no-op; markers without a seq (defensive
+        // shape) stay unguarded, matching the pre-fix behavior.
+        if (sqlite && typeof marker.seq === 'number' && Number.isFinite(marker.seq)) {
+          const seq = Math.round(marker.seq)
+          if (sqlite.hasTurnAnchor(marker.sessionId, seq)) return
+          sqlite.addTurnAnchor(marker.sessionId, seq)
+        }
         const day = typeof marker.day === 'string' && marker.day !== '' ? marker.day : dayKey(marker.time)
         const time = typeof marker.time === 'number' && Number.isFinite(marker.time) ? marker.time : Date.now()
         const row = kv.days.get(day) ?? emptyDayRollup(day)
@@ -697,7 +725,7 @@ export function createLedgerStore({ storageDomain, config, logger }) {
     },
 
     status() {
-      let counts = { requestRows: 0, toolRows: 0 }
+      let counts = { requestRows: 0, toolRows: 0, anchorRows: 0 }
       if (sqlite) {
         try {
           counts = sqlite.rowCounts()
@@ -712,6 +740,8 @@ export function createLedgerStore({ storageDomain, config, logger }) {
         retentionDays,
         requestRows: counts.requestRows,
         toolRows: counts.toolRows,
+        // Permanent delta anchors (prune-proof KV delta base, 2026-11-17).
+        anchorRows: counts.anchorRows,
         kvDays: kv ? kv.days.size : 0,
         kvSessions: kv ? kv.sessions.size : 0,
         recordFailures,

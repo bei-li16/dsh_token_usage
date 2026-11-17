@@ -13,18 +13,25 @@
  * off-window gap catch-up on first live observation, dispose tail
  * catch-up, and flush({dropRunning}).
  *
- * Fix regressions (2026-11-17): the startup reconciliation sweep heals
- * cursor-marked dead sessions (offline tail hole / zero-mark victim)
- * without touching live or unmarked sessions. The inherited prefix stays
- * skipped UNCONDITIONALLY — host invariant cut > 0 ⟺ seeded fork (seeded
- * forks carry no parentSession; see the j1/k1/j2 guard below).
+ * Fix regressions (2026-11-17): the inherited prefix stays skipped
+ * UNCONDITIONALLY — host invariant cut > 0 ⟺ seeded fork (seeded forks carry
+ * no parentSession; see the j1/k1/j2 guard below).
+ *
+ * Fix regressions (task-6, 2026-11-17 double-count incident): the store's KV
+ * delta base moved from the prunable SQLite detail rows to PERMANENT anchors
+ * (request_anchor/tool_anchor/turn_anchor — prune never deletes them, reset
+ * clears them), and turn markers dedupe on (session, seq). modelStore below
+ * mirrors both semantics plus the 0.1.2 legacy mode; scenarios M/N/O/P replay
+ * the release-acceptance incident (reset → rescan → remount window → sweep):
+ * legacy reproduces the exactly-2×-old-days fingerprint, the fix keeps every
+ * day/session counter strictly unchanged (verify-usage [d]/[e] semantics).
  *
  * Run: node src/collector/smoke.mjs   (exit 0 = pass)
  */
 
 import { RequestFold } from './fold.js'
 import { LedgerCollector } from './collector.js'
-import { dayKey, hourKey } from '../contract.js'
+import { dayKey, hourKey, todayKey } from '../contract.js'
 
 const T0 = 1763000000000 // fixed epoch base; all times derive from it
 
@@ -624,6 +631,190 @@ async function main() {
   eq(collectorL.status.sweep?.checked, 3, 'sweep status: checked = dead cursor sessions (w1, w2, w3)')
   eq(collectorL.status.sweep?.replayed, 2, 'sweep status: replayed = w1 tail + w2 full')
   eq(collectorL.status.error, undefined, 'sweep scenario: clean run leaves status.error unset')
+
+  // ── modelStore：真实 store 的微缩模型（task-6 回归专用）──────────────────
+  // 固定语义（0.1.3）：request/tool 的 upsert delta 基准 = 永久锚（prune 不删、
+  // reset 清）；turn marker 以 (session, seq) 锚去重。legacy: true 复刻 0.1.2 的
+  // 缺陷语义（delta 基准 = 可被 prune 清空的明细行、turn marker 无去重）——
+  // 先在 mock 层复现事故指纹，再验证修复语义严格幂等。backing 共享 = 重开/重建
+  // 实例看到的持久状态（KV + SQLite 锚/明细）；lastPruneDay 是实例状态（重挂载
+  // 的新实例首写先 prune——候选机制 (a) 的放大器）。
+  function modelStore({ backing, legacy = false, cutoffDay = dayKey(T0 + 35 * 86400000) } = {}) {
+    const b = backing ?? {
+      dayTokens: new Map(), dayTurns: new Map(),
+      sessionTokens: new Map(), sessionTurns: new Map(),
+      sessions: new Map(), // id → { lastSeq }
+      cursor: { backfilledSessions: [], liveFirstSeq: {} },
+      detail: new Map(), // factId → fact（30 天滚动明细，prune 删）
+      anchors: new Map(), // factId → fact（永久 delta 锚，prune 不删）
+      turnAnchors: new Set(), // `${sid}|${seq}`
+    }
+    let lastPruneDay = null // 实例状态：重挂载的新实例 = null → 首写先 prune
+    const TODAY = todayKey()
+    const pruneDetail = () => {
+      for (const [id, f] of b.detail) if (f.day < cutoffDay) b.detail.delete(id)
+    }
+    const store = {
+      backing: b,
+      legacy,
+      calls: { markSessionSeq: [], markBackfilled: [], prune: 0 },
+      /** 当前 day/session 两面计数快照（verify-usage 判据 [d]/[e] 的 mock 面）。 */
+      modelTotals: () => ({
+        days: new Map(b.dayTokens), dayTurns: new Map(b.dayTurns),
+        sessions: new Map(b.sessionTokens), sessionTurns: new Map(b.sessionTurns),
+      }),
+      async reset(boundaries) {
+        b.dayTokens.clear(); b.dayTurns.clear()
+        b.sessionTokens.clear(); b.sessionTurns.clear()
+        b.sessions.clear(); b.detail.clear(); b.anchors.clear(); b.turnAnchors.clear()
+        b.cursor = { backfilledSessions: [], liveFirstSeq: Object.fromEntries([...(boundaries ?? new Map())]) }
+        lastPruneDay = null
+      },
+      async prune() { lastPruneDay = TODAY; pruneDetail(); store.calls.prune++ },
+      recordRequest(f) {
+        if (lastPruneDay !== TODAY) { lastPruneDay = TODAY; pruneDetail() } // 重建实例首写先 prune
+        const old = legacy ? b.detail.get(f.id) : (b.anchors.get(f.id) ?? b.detail.get(f.id))
+        const delta = f.computedTotal - (old ? old.computedTotal : 0)
+        if (delta !== 0) {
+          b.dayTokens.set(f.day, (b.dayTokens.get(f.day) ?? 0) + delta)
+          b.sessionTokens.set(f.sessionId, (b.sessionTokens.get(f.sessionId) ?? 0) + delta)
+        }
+        if (!b.sessions.has(f.sessionId)) b.sessions.set(f.sessionId, { lastSeq: -1 })
+        b.detail.set(f.id, f)
+        if (!legacy) b.anchors.set(f.id, f)
+      },
+      recordToolCall(f) {
+        if (!b.sessions.has(f.sessionId)) b.sessions.set(f.sessionId, { lastSeq: -1 })
+        b.detail.set(f.id, f)
+        if (!legacy) b.anchors.set(f.id, f)
+      },
+      recordTurn(marker) {
+        if (!legacy && typeof marker.seq === 'number' && Number.isFinite(marker.seq)) {
+          const key = `${marker.sessionId}|${Math.round(marker.seq)}`
+          if (b.turnAnchors.has(key)) return
+          b.turnAnchors.add(key)
+        }
+        b.dayTurns.set(marker.day, (b.dayTurns.get(marker.day) ?? 0) + 1)
+        b.sessionTurns.set(marker.sessionId, (b.sessionTurns.get(marker.sessionId) ?? 0) + 1)
+        if (!b.sessions.has(marker.sessionId)) b.sessions.set(marker.sessionId, { lastSeq: -1 })
+      },
+      recordSessionMeta() {},
+      async cursorState() { return { cursor: { backfilledSessions: [...b.cursor.backfilledSessions], liveFirstSeq: { ...b.cursor.liveFirstSeq } } } },
+      async markBackfilled(ids) { b.cursor.backfilledSessions = [...new Set([...b.cursor.backfilledSessions, ...ids])]; store.calls.markBackfilled.push(ids) },
+      async markLiveSequence() {},
+      async sessionHighSeq(id) { const row = b.sessions.get(id); return row ? (row.lastSeq ?? -1) : null },
+      async markSessionSeq(id, seq) {
+        store.calls.markSessionSeq.push([id, seq])
+        const row = b.sessions.get(id)
+        if (row && (row.lastSeq ?? -1) < seq) row.lastSeq = seq
+      },
+    }
+    return store
+  }
+
+  // ── task-6 场景夹具：p1 = 全部历史在 prune 截止之前的死会话（e855f1eb 型）；
+  //    p2 = 全部数据在 30 天窗口内的死会话（7 个未翻倍会话型）──────────────
+  const OLD_T = T0
+  const REC_T = T0 + 40 * 86400000
+  const incidentEvents = (t0) => [
+    ev(0, t0, 'step/start', { turn: 1, step: 1 }),
+    ev(1, t0 + 100, 'assistant/message', { turn: 1, step: 1, message: {}, usage: { inputTokens: 1000, outputTokens: 1000 } }),
+    ev(2, t0 + 200, 'turn/end', { turn: 1, reason: 'completed' }),
+    ev(3, t0 + 1000, 'step/start', { turn: 2, step: 1 }),
+    ev(4, t0 + 1100, 'assistant/message', { turn: 2, step: 1, message: {}, usage: { inputTokens: 2000, outputTokens: 2000 } }),
+    ev(5, t0 + 1200, 'turn/end', { turn: 2, reason: 'completed' }),
+  ]
+  const logsIncident = new Map([
+    ['p1', { header: { id: 'p1' }, inheritedEventCount: 0, events: incidentEvents(OLD_T) }],
+    ['p2', { header: { id: 'p2' }, inheritedEventCount: 0, events: incidentEvents(REC_T) }],
+  ])
+
+  // ── 复现序列（发布验收 09:26→09:45）：reset 清空 → 重扫标记（各记一次 +
+  //    trusted 标记 maxSeq）→「重挂载」窗口（store 重建：新实例 lastPruneDay=null
+  //    → 首写先 prune 清旧明细 —— 候选 (a) 的放大器；行高水位丢失 —— 候选 (b) 的
+  //    状态，无论宿主哪条路径造成）→ 新 collector 的 boot sweep 全量重放 ──
+  const runIncident = async (legacy) => {
+    const m = modelStore({ legacy })
+    const c1 = new LedgerCollector({ store: m, concurrency: 1 })
+    await c1.backfill(mockPersistence(logsIncident), noLiveSessions)
+    const once = m.modelTotals()
+    const m2 = modelStore({ backing: m.backing, legacy })
+    for (const row of m2.backing.sessions.values()) row.lastSeq = -1 // 高水位丢失
+    const c2 = new LedgerCollector({ store: m2, concurrency: 1 })
+    await c2.backfill(mockPersistence(logsIncident), noLiveSessions)
+    return { once, twice: m2.modelTotals(), sweep: c2.status.sweep }
+  }
+
+  // ── 场景 P（task-6 主复现）：legacy 语义复现事故指纹；修复语义严格不变 ──
+  const legacyRun = await runIncident(true)
+  eq(legacyRun.once.sessions.get('p1'), 6000, '复现前置：重扫各记一次（p1=6000）')
+  eq(legacyRun.once.sessions.get('p2'), 6000, '复现前置：p2=6000')
+  eq(legacyRun.twice.sessions.get('p1'), 12000, '复现：legacy delta 基准=可 prune 明细 → 旧日会话恰好 2×')
+  eq(legacyRun.twice.days.get(dayKey(OLD_T)), 12000, '复现：旧日 day 恰好 2×（verify-usage 判据 [e] 会命中）')
+  eq(legacyRun.twice.sessions.get('p2'), 6000, '复现：窗口内会话不翻倍（明细行仍在 → delta 幂等）')
+  eq(legacyRun.twice.sessionTurns.get('p1'), 4, '复现：turn marker 无去重 → turns 也翻倍')
+  eq(legacyRun.sweep.checked, 2, '复现：sweep checked=2（高水位丢失 → 全判落后）')
+  eq(legacyRun.sweep.replayed, 2, '复现：sweep replayed=2')
+  const fixedRun = await runIncident(false)
+  eq(fixedRun.twice.sessions.get('p1'), 6000, '修复：同一序列下旧日会话严格幂等（判据 [d] 语义）')
+  eq(fixedRun.twice.days.get(dayKey(OLD_T)), 6000, '修复：旧日 day 计数严格不变（判据 [e] 语义）')
+  eq(fixedRun.twice.sessionTurns.get('p1'), 2, '修复：turns 严格不变')
+  eq(fixedRun.twice.sessions.get('p2'), 6000, '修复：窗口内事实幂等')
+
+  // ── 场景 M（候选 a）：store 重建（新实例首写先 prune）单独无害 —— 标记完好
+  //    时 sweep 零重放、零写入；prune 已跑（旧明细可被清，放大器上膛）──────
+  {
+    const m = modelStore()
+    const c1 = new LedgerCollector({ store: m, concurrency: 1 })
+    await c1.backfill(mockPersistence(logsIncident), noLiveSessions)
+    ok(!m.backing.detail.has('p1:1:1:0'), '(a) 重扫收尾 prune 已清旧日明细（放大器上膛）')
+    const m2 = modelStore({ backing: m.backing })
+    const c2 = new LedgerCollector({ store: m2, concurrency: 1 })
+    await c2.backfill(mockPersistence(logsIncident), noLiveSessions)
+    eq(c2.status.sweep?.checked, 2, '(a) 重建实例 sweep 仍检查两个死会话')
+    eq(c2.status.sweep?.replayed, 0, '(a) 标记完好 → 零重放（重建单独无害）')
+    ok(m2.calls.prune >= 1, '(a) 重建实例收尾 prune 照跑（lastPruneDay=实例状态）')
+    const after = m2.modelTotals()
+    eq(after.sessions.get('p1'), 6000, '(a) 重建+prune 后 day/session 计数严格不变')
+    eq(after.days.get(dayKey(REC_T)), 6000, '(a) 窗口内 day 计数严格不变')
+  }
+
+  // ── 场景 N（候选 b）：重开实例从「陈旧高水位」加载（无论宿主哪条路径丢了
+  //    标记）→ sweep 全量重放 → 修复语义下一切计数严格不变，且事后收敛 ──────
+  {
+    const m = modelStore()
+    const c1 = new LedgerCollector({ store: m, concurrency: 1 })
+    await c1.backfill(mockPersistence(logsIncident), noLiveSessions)
+    const m2 = modelStore({ backing: m.backing })
+    for (const row of m2.backing.sessions.values()) row.lastSeq = -1 // 陈旧高水位
+    const c2 = new LedgerCollector({ store: m2, concurrency: 1 })
+    await c2.backfill(mockPersistence(logsIncident), noLiveSessions)
+    eq(c2.status.sweep?.replayed, 2, '(b) 陈旧高水位 → sweep 全量重放')
+    const after = m2.modelTotals()
+    eq(after.sessions.get('p1'), 6000, '(b) 修复：旧日事实经永久锚 delta-0，session 不变')
+    eq(after.days.get(dayKey(OLD_T)), 6000, '(b) 修复：旧日 day 严格不变')
+    eq(after.dayTurns.get(dayKey(OLD_T)), 2, '(b) 修复：day turns 严格不变')
+    eq(after.sessions.get('p2'), 6000, '(b) 修复：窗口内事实幂等')
+    const c3 = new LedgerCollector({ store: m2, concurrency: 1 })
+    await c3.backfill(mockPersistence(logsIncident), noLiveSessions)
+    eq(c3.status.sweep?.replayed, 0, '(b) 事后收敛：再扫零重放')
+  }
+
+  // ── 场景 O（候选 c）：readLog 多代读法否证护栏。宿主源码（dsh-storage-json
+  //    per-record-unit）：KV 后端无状态、loadAll 重读目录、putRecord 逐条原子
+  //    落盘——不存在「陈旧文件」窗口；实测 e855f1eb 事后 lastSeq=846=其 v4 日志
+  //    maxSeq（若 sweep 读到 v3 代会标 147505）。护栏：sweep 重放后 lastSeq 必须
+  //    等于「所读日志」的 maxSeq，且重放经锚严格幂等 ────────────────────────
+  {
+    const m = modelStore()
+    const c1 = new LedgerCollector({ store: m, concurrency: 1 })
+    await c1.backfill(mockPersistence(logsIncident), noLiveSessions)
+    m.backing.sessions.get('p1').lastSeq = 0 // 陈旧低位 → 尾洞重放 (0, ∞)
+    const c2 = new LedgerCollector({ store: m, concurrency: 1 })
+    await c2.backfill(mockPersistence(logsIncident), noLiveSessions)
+    eq(m.backing.sessions.get('p1')?.lastSeq, 5, '(c) 护栏：重放后 lastSeq=所读日志 maxSeq（=5）')
+    eq(m.modelTotals().sessions.get('p1'), 6000, '(c) 护栏：尾洞重放经锚严格幂等')
+  }
 
   // ── summary ──
   if (failures > 0) {
