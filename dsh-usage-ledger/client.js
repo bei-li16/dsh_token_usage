@@ -266,6 +266,13 @@ body[data-ds-dark-theme] .ul-icRed{--ul-ic:#f0737c}
 .ul-heat4{fill:color-mix(in srgb,var(--dsw-tone-1) 95%,transparent)}
 .ul-heatLegend{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--dsw-alias-label-tertiary)}
 .ul-heatKey{width:12px;height:12px;border-radius:3px;display:inline-block}
+/* The ul-heatN classes set SVG fill; legend keys are HTML spans and need the
+   same ramp as background. */
+.ul-heatKey.ul-heat0{background:color-mix(in srgb,var(--dsw-alias-label-primary) 7%,transparent)}
+.ul-heatKey.ul-heat1{background:color-mix(in srgb,var(--dsw-tone-1) 35%,transparent)}
+.ul-heatKey.ul-heat2{background:color-mix(in srgb,var(--dsw-tone-1) 55%,transparent)}
+.ul-heatKey.ul-heat3{background:color-mix(in srgb,var(--dsw-tone-1) 75%,transparent)}
+.ul-heatKey.ul-heat4{background:color-mix(in srgb,var(--dsw-tone-1) 95%,transparent)}
 .ul-donutRow{display:flex;flex-direction:column;align-items:center;gap:14px}
 .ul-donutWrap{position:relative;flex:0 0 auto}
 .ul-donutLegend{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;min-width:0}
