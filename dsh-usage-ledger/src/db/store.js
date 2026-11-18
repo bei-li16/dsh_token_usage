@@ -146,8 +146,27 @@ export function createLedgerStore({ storageDomain, config, logger }) {
   const flush = () => chain
 
   // ── KV 行读-改-写小工具（都在队列内调用，串行安全）────────────────────
+  // Windows 现场实测（2026-11-18）：单文档 JSON 后端以 tmp+rename 持久化，
+  // 杀软/索引器钩子瞬时占用目标文件会让 rename 抛 EPERM/EBUSY——这正是
+  // 11-17 的 16 条与 reset 期间的 12 条写入失败。此类错误有界重试即可吸收
+  // （4 次，100/200/300ms 退避）；其它错误照常抛给 enqueue 计数。
+  const RETRYABLE = /EPERM|EBUSY/i
+  async function withRetry(op) {
+    let attempt = 0
+    for (;;) {
+      try { return await op() } catch (err) {
+        attempt += 1
+        const msg = String((err && err.message) || err)
+        if (attempt >= 4 || !RETRYABLE.test(msg)) throw err
+        await new Promise((resolve) => setTimeout(resolve, 100 * attempt))
+      }
+    }
+  }
   async function putRow(table, key, row) {
-    await table.put(key, row)
+    await withRetry(() => table.put(key, row))
+  }
+  async function setGlobal(value) {
+    await withRetry(() => kv.globalHandle.set(value))
   }
 
   /** days 行应用一次带符号贡献。 */
@@ -451,7 +470,7 @@ export function createLedgerStore({ storageDomain, config, logger }) {
               }
             }
           }
-          await kv.globalHandle.set({ backfilledSessions: [], liveFirstSeq })
+          await setGlobal({ backfilledSessions: [], liveFirstSeq })
         }
         lastPruneDay = null
       })
@@ -473,7 +492,7 @@ export function createLedgerStore({ storageDomain, config, logger }) {
         // 最早的边界获胜：它是前缀回放的安全分界点。
         if (prev === undefined || seq < prev) {
           merged[id] = Math.round(seq)
-          await kv.globalHandle.set({ backfilledSessions: cursor.backfilledSessions, liveFirstSeq: merged })
+          await setGlobal({ backfilledSessions: cursor.backfilledSessions, liveFirstSeq: merged })
         }
       })
     },
@@ -529,7 +548,7 @@ export function createLedgerStore({ storageDomain, config, logger }) {
           }
         }
         if (changed) {
-          await kv.globalHandle.set({ backfilledSessions: [...seen], liveFirstSeq: cursor.liveFirstSeq })
+          await setGlobal({ backfilledSessions: [...seen], liveFirstSeq: cursor.liveFirstSeq })
         }
       })
     },

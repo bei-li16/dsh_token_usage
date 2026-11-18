@@ -467,6 +467,32 @@ async function main() {
   )
   await store3.dispose()
 
+  // ── EPERM 重试：KV put 前两次抛 EPERM（Windows tmp+rename 被钩子占用），
+  // 有界重试应吸收；recordFailures 不变，数据照记 ─────────────────────────
+  {
+    const flakyDomain = makeFakeStorageDomain()
+    const baseOpen = flakyDomain.open
+    flakyDomain.open = async (spec) => {
+      const domain = await baseOpen(spec)
+      const baseTable = domain.table
+      domain.table = (name) => {
+        const t = baseTable(name)
+        if (name !== 'days') return t
+        let fails = 2
+        return { ...t, put: async (key, value) => { if (fails-- > 0) throw new Error("EPERM: operation not permitted, rename 'x.tmp' -> 'usage_ledger.json'"); return t.put(key, value) } }
+      }
+      return domain
+    }
+    const storeR = makeStore({ storageDomain: flakyDomain, config: { retentionDays: 30, factsDbPath: join(tmp, 'facts-retry.db') }, logger })
+    await storeR.ready()
+    storeR.recordRequest({ id: 'sr:1:1:0', sessionId: 'sr', parentId: null, kind: 'main', turn: 1, step: 1, attempt: 0, time: at(today, 6), finishedAt: at(today, 6) + 500, provider: 'openai', model: 'gpt-x', status: 'completed', inputTokens: 10, outputTokens: 5 })
+    await storeR.flush()
+    const sumR = await storeR.summary()
+    assert.equal(sumR.tokens, 15, 'EPERM 重试后数据照记')
+    assert.equal(storeR.status().recordFailures, 0, 'EPERM 重试成功不计失败')
+    await storeR.dispose()
+  }
+
   console.log('smoke OK: all assertions passed')
 }
 
