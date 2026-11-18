@@ -398,6 +398,29 @@ async function main() {
   ok(storeD2.calls.request.some((r) => r.id === 'd1:1:1:0'), 'deferred session replays fully once closed')
   ok(storeD2.calls.markBackfilled.some((b) => b.includes('d1')), 'closed pass marks it backfilled')
 
+  // ── fix regression (2026-11-18): an IDLE session with a stale persisted
+  //    boundary must replay from scratch — nothing live owns [boundary, ∞)
+  //    anymore (Normal分析1 turn-51 hole: drain-buffered events flushed to
+  //    the log only after the boundary was sampled) ──
+  const logsN = new Map([
+    ['n1', { header: { id: 'n1' }, inheritedEventCount: 0, events: [
+      ev(0, T0, 'step/start', { turn: 1, step: 1 }),
+      ev(1, T0 + 100, 'assistant/message', { turn: 1, step: 1, message: {}, usage: { inputTokens: 1, outputTokens: 1 } }),
+      ev(2, T0 + 150, 'turn/end', { turn: 1, reason: 'completed' }),
+      ev(5, T0 + 1000, 'step/start', { turn: 2, step: 1 }),
+      ev(6, T0 + 1100, 'assistant/message', { turn: 2, step: 1, message: {}, usage: { inputTokens: 20, outputTokens: 5 } }),
+      ev(7, T0 + 1200, 'turn/end', { turn: 2, reason: 'completed' }),
+    ] }],
+  ])
+  const storeN = mockStore()
+  // boundary 3: turn 2 (seq ≥ 3) looks "live-owned" — but n1 is NOT live.
+  storeN.setCursor({ backfilledSessions: [], liveFirstSeq: { n1: 3 } })
+  const collectorN = new LedgerCollector({ store: storeN, concurrency: 1 })
+  await collectorN.backfill(mockPersistence(logsN), noLiveSessions)
+  const nIds = storeN.calls.request.map((r) => r.id)
+  ok(nIds.includes('n1:1:1:0'), 'idle+boundary: prefix replayed')
+  ok(nIds.includes('n1:2:1:0'), 'idle session ignores stale boundary — tail replayed')
+
   // ── fix regression: same-activation live boundary closes the KV write race ──
   const storeE = mockStore()
   const collectorE = new LedgerCollector({ store: storeE, concurrency: 1 })

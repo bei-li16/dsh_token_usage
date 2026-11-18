@@ -617,6 +617,15 @@ export class LedgerCollector {
       isLiveNow = typeof sessions?.list === 'function' && sessions.list().some((s) => s?.id === header.id)
     } catch { isLiveNow = false }
     if (isLiveNow && (boundary === undefined || boundary < 0)) return 'deferred'
+    // Idle-session fence fix (2026-11-18, Normal分析1 turn-51 hole): a
+    // persisted/in-memory boundary is only meaningful while the LIVE pass
+    // exists to own [boundary, ∞). For a session that is not live right now
+    // nothing will ever deliver that tail again — events that sat in the
+    // host's drain buffer (or a since-killed fiber's live window) flush to
+    // the log later and would stay fenced off forever. Delta anchors make a
+    // full replay strictly idempotent, so idle sessions always replay from
+    // scratch.
+    if (!isLiveNow) boundary = undefined
     // Seq partition: no boundary → replay from scratch; negative sentinel →
     // replay nothing (never risk a duplicate); N → replay exactly [0, N).
     const fromScratch = boundary === undefined
