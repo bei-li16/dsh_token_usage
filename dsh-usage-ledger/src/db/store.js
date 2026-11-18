@@ -336,11 +336,14 @@ export function createLedgerStore({ storageDomain, config, logger }) {
         // six days at exactly 2×). Anchors survive prune; only reset clears
         // them (a full rebuild wipes the KV side too, so the pairing holds).
         const old = sqlite ? (sqlite.getRequestAnchor(f.id) ?? sqlite.getRequest(f.id)) : recentFacts.get(f.id)
-        if (sqlite) {
-          sqlite.upsertRequest(f)
-          sqlite.upsertRequestAnchor(f)
-        }
+        if (sqlite) sqlite.upsertRequest(f)
         await applyRequestDelta(f, old)
+        // 锚最后写：锚 = 「KV 贡献已落账」的持久声明。旧顺序（锚先于 KV）
+        // 在 KV 写失败时留下锚 → 重放 delta=0 → 该事实永久从汇总丢失
+        // （2026-11-17 的 16 条写入失败即此机制造成的持久缺口）。反转后
+        // KV 失败 → 无锚 → 下次巡检重放按全量 delta 自愈；仅剩「KV 成功 +
+        // 锚写失败」的反向小窗（本地 sqlite 单表写入，概率远低于 KV）。
+        if (sqlite) sqlite.upsertRequestAnchor(f)
         if (!sqlite) {
           recentFacts.set(f.id, f)
           if (recentFacts.size > RECENT_FACTS_CAP) {
@@ -356,11 +359,10 @@ export function createLedgerStore({ storageDomain, config, logger }) {
         const f = normalizeToolFact(fact)
         // Delta base = permanent anchor (see recordRequest; same fix).
         const old = sqlite ? (sqlite.getToolAnchor(f.id) ?? sqlite.getTool(f.id)) : recentFacts.get(f.id)
-        if (sqlite) {
-          sqlite.upsertTool(f)
-          sqlite.upsertToolAnchor(f)
-        }
+        if (sqlite) sqlite.upsertTool(f)
         await applyToolDelta(f, old)
+        // 锚最后写（同 recordRequest 的修复：KV 失败不留锚，重放自愈）。
+        if (sqlite) sqlite.upsertToolAnchor(f)
         if (!sqlite) {
           recentFacts.set(f.id, f)
           if (recentFacts.size > RECENT_FACTS_CAP) {
@@ -380,11 +382,9 @@ export function createLedgerStore({ storageDomain, config, logger }) {
         // same way it doubled tokens). The permanent (session, seq) anchor
         // makes re-delivered markers a no-op; markers without a seq (defensive
         // shape) stay unguarded, matching the pre-fix behavior.
-        if (sqlite && typeof marker.seq === 'number' && Number.isFinite(marker.seq)) {
-          const seq = Math.round(marker.seq)
-          if (sqlite.hasTurnAnchor(marker.sessionId, seq)) return
-          sqlite.addTurnAnchor(marker.sessionId, seq)
-        }
+        const guarded = sqlite && typeof marker.seq === 'number' && Number.isFinite(marker.seq)
+        const seq = guarded ? Math.round(marker.seq) : null
+        if (guarded && sqlite.hasTurnAnchor(marker.sessionId, seq)) return
         const day = typeof marker.day === 'string' && marker.day !== '' ? marker.day : dayKey(marker.time)
         const time = typeof marker.time === 'number' && Number.isFinite(marker.time) ? marker.time : Date.now()
         const row = kv.days.get(day) ?? emptyDayRollup(day)
@@ -396,6 +396,8 @@ export function createLedgerStore({ storageDomain, config, logger }) {
         addClamped(kindRow, 'turns', 1)
         await putRow(kv.dayKind, kindKey, kindRow)
         await applySession({ sessionId: marker.sessionId, parentId: marker.parentId ?? null, kind: marker.kind, day, time, turns: 1 }, 1)
+        // 锚最后写（同 recordRequest：KV 失败不留锚，重放自愈）。
+        if (guarded) sqlite.addTurnAnchor(marker.sessionId, seq)
       })
     },
 
