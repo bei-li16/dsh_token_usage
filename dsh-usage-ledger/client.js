@@ -201,7 +201,7 @@ window.__ModuleLoader__.load({
 .ul-hitWarn{color:var(--dsw-alias-state-warn-label,var(--dsw-alias-label-secondary))}
 .ul-hitBad{color:var(--dsw-alias-state-error-primary,var(--dsw-alias-label-secondary))}
 .ul-mdNameCell{display:flex;align-items:center;gap:6px;min-width:0}
-.ul-mdLogo{width:16px;height:16px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;line-height:1;color:var(--dsw-alias-bg-base);background:color-mix(in srgb,var(--dsw-tone-1) 65%,transparent);flex:0 0 auto}
+.ul-mdLogo{width:16px;height:16px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;line-height:1;color:var(--dsw-alias-bg-base);background:color-mix(in srgb,var(--dsw-tone-1,#4d6bfe) 65%,transparent);flex:0 0 auto}
 .ul-cards{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
 .ul-card{box-sizing:border-box;padding:12px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);min-width:0}
 .ul-cardLabel{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--dsw-alias-label-tertiary);margin-bottom:4px}
@@ -236,7 +236,7 @@ body[data-ds-dark-theme] .ul-icRed{--ul-ic:#f0737c}
 .ul-seg{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--dsw-alias-border-l2);border-radius:9px;background:var(--dsw-alias-bg-layer-1)}
 .ul-segBtn{border:none;background:none;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;padding:3px 10px;border-radius:6px;cursor:pointer}
 .ul-segBtn:hover{background:var(--dsw-alias-interactive-bg-hover)}
-.ul-segActive,.ul-segActive:hover{background:color-mix(in srgb,var(--dsw-tone-1) 14%,transparent);color:var(--dsw-tone-1);font-weight:600}
+.ul-segActive,.ul-segActive:hover{background:color-mix(in srgb,var(--dsw-tone-1,#4d6bfe) 14%,transparent);color:var(--dsw-tone-1,#4d6bfe);font-weight:600}
 .ul-chart{width:100%;height:auto;display:block}
 .ul-chartWrap{position:relative}
 .ul-tip{position:absolute;z-index:20;pointer-events:none;box-sizing:border-box;min-width:132px;max-width:260px;padding:8px 10px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2,var(--dsw-alias-bg-layer-1));box-shadow:0 4px 16px rgba(0,0,0,.24);font-size:12px;line-height:1.5;color:var(--dsw-alias-label-primary)}
@@ -260,19 +260,19 @@ body[data-ds-dark-theme] .ul-icRed{--ul-ic:#f0737c}
    the accent ramp so "no usage" never reads as a light blue cell. Levels
    1-4 start at 35% accent so level-1 is unmistakably "has data". */
 .ul-heat0{fill:color-mix(in srgb,var(--dsw-alias-label-primary) 7%,transparent)}
-.ul-heat1{fill:color-mix(in srgb,var(--dsw-tone-1) 35%,transparent)}
-.ul-heat2{fill:color-mix(in srgb,var(--dsw-tone-1) 55%,transparent)}
-.ul-heat3{fill:color-mix(in srgb,var(--dsw-tone-1) 75%,transparent)}
-.ul-heat4{fill:color-mix(in srgb,var(--dsw-tone-1) 95%,transparent)}
+.ul-heat1{fill:color-mix(in srgb,var(--dsw-tone-1,#4d6bfe) 35%,transparent)}
+.ul-heat2{fill:color-mix(in srgb,var(--dsw-tone-1,#4d6bfe) 55%,transparent)}
+.ul-heat3{fill:color-mix(in srgb,var(--dsw-tone-1,#4d6bfe) 75%,transparent)}
+.ul-heat4{fill:color-mix(in srgb,var(--dsw-tone-1,#4d6bfe) 95%,transparent)}
 .ul-heatLegend{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--dsw-alias-label-tertiary)}
 .ul-heatKey{width:12px;height:12px;border-radius:3px;display:inline-block}
 /* The ul-heatN classes set SVG fill; legend keys are HTML spans and need the
    same ramp as background. */
 .ul-heatKey.ul-heat0{background:color-mix(in srgb,var(--dsw-alias-label-primary) 7%,transparent)}
-.ul-heatKey.ul-heat1{background:color-mix(in srgb,var(--dsw-tone-1) 35%,transparent)}
-.ul-heatKey.ul-heat2{background:color-mix(in srgb,var(--dsw-tone-1) 55%,transparent)}
-.ul-heatKey.ul-heat3{background:color-mix(in srgb,var(--dsw-tone-1) 75%,transparent)}
-.ul-heatKey.ul-heat4{background:color-mix(in srgb,var(--dsw-tone-1) 95%,transparent)}
+.ul-heatKey.ul-heat1{background:color-mix(in srgb,var(--dsw-tone-1,#4d6bfe) 35%,transparent)}
+.ul-heatKey.ul-heat2{background:color-mix(in srgb,var(--dsw-tone-1,#4d6bfe) 55%,transparent)}
+.ul-heatKey.ul-heat3{background:color-mix(in srgb,var(--dsw-tone-1,#4d6bfe) 75%,transparent)}
+.ul-heatKey.ul-heat4{background:color-mix(in srgb,var(--dsw-tone-1,#4d6bfe) 95%,transparent)}
 .ul-donutRow{display:flex;flex-direction:column;align-items:center;gap:14px}
 .ul-donutWrap{position:relative;flex:0 0 auto}
 .ul-donutLegend{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;min-width:0}
@@ -286,7 +286,7 @@ body[data-ds-dark-theme] .ul-icRed{--ul-ic:#f0737c}
 .ul-cellName{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-primary)}
 .ul-cellNum{font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:8px;justify-content:flex-end}
 .ul-barWrap{flex:1;height:6px;border-radius:3px;background:var(--dsw-alias-bg-layer-1);overflow:hidden}
-.ul-bar{display:block;height:100%;border-radius:3px;background:color-mix(in srgb,var(--dsw-tone-1) 70%,transparent)}
+.ul-bar{display:block;height:100%;border-radius:3px;background:color-mix(in srgb,var(--dsw-tone-1,#4d6bfe) 70%,transparent)}
 .ul-sessHead,.ul-sessRow{grid-template-columns:minmax(96px,1.6fr) 52px minmax(88px,1fr) 46px 62px}
 .ul-sessHead{color:var(--dsw-alias-label-tertiary);border-bottom:1px solid var(--dsw-alias-border-l2);padding-bottom:6px}
 .ul-sessRow{padding:5px 0;border-bottom:1px solid color-mix(in srgb,var(--dsw-alias-border-l2) 50%,transparent);color:var(--dsw-alias-label-secondary)}
@@ -310,7 +310,7 @@ body[data-ds-dark-theme] .ul-icRed{--ul-ic:#f0737c}
 }
 .ul-svHead{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
 .ul-svLive{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--dsw-alias-label-secondary)}
-.ul-liveDot{width:8px;height:8px;border-radius:50%;background:var(--dsw-alias-state-success-primary,var(--dsw-tone-1));flex:0 0 auto}
+.ul-liveDot{width:8px;height:8px;border-radius:50%;background:var(--dsw-alias-state-success-primary,var(--dsw-tone-1,#4d6bfe));flex:0 0 auto}
 .ul-svAsOf{color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}
 .ul-svRefresh{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);border-radius:6px;padding:2px 10px;cursor:pointer;font:inherit;font-size:12px}
 .ul-svRefresh:hover{background:var(--dsw-alias-interactive-bg-hover)}
