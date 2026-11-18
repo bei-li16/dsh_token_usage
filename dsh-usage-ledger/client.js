@@ -32,7 +32,7 @@ window.__ModuleLoader__.load({
       activeDays: '活跃天数', inputTok: '输入', outputTok: '输出',
       cacheReadTok: '缓存读', cacheWriteTok: '缓存写', turns: '轮次', toolCalls: '工具调用',
       dailyTitle: '每日用量（按模型）', rToday: '今天', r7: '7 天', r30: '30 天', r90: '90 天',
-      heatTitle: '近一年活跃度', less: '少', more: '多',
+      heatTitle: '活跃热力图', less: '少', more: '多',
       hmDay: '每日', hmWeek: '每周', hmCum: '累计',
       donutTitle: '模型占比', other: '其他',
       toolsTitle: '工具分布', tName: '工具', tCalls: '次数', tFail: '失败率', tAvg: '平均耗时',
@@ -68,7 +68,7 @@ window.__ModuleLoader__.load({
       activeDays: 'Active days', inputTok: 'Input', outputTok: 'Output',
       cacheReadTok: 'Cache read', cacheWriteTok: 'Cache write', turns: 'Turns', toolCalls: 'Tool calls',
       dailyTitle: 'Daily usage by model', rToday: 'Today', r7: '7d', r30: '30d', r90: '90d',
-      heatTitle: 'Past year activity', less: 'Less', more: 'More',
+      heatTitle: 'Activity heatmap', less: 'Less', more: 'More',
       hmDay: 'Daily', hmWeek: 'Weekly', hmCum: 'Cumulative',
       donutTitle: 'Model share', other: 'Other',
       toolsTitle: 'Tool usage', tName: 'Tool', tCalls: 'Calls', tFail: 'Failure rate', tAvg: 'Avg duration',
@@ -210,16 +210,14 @@ window.__ModuleLoader__.load({
    teal input / orange output+speed / green hit rate). */
 .ul-cardLabel{display:flex;align-items:center;gap:6px}
 .ul-cardIcon{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:6px;color:var(--ul-ic,var(--dsw-alias-label-tertiary));background:color-mix(in srgb,var(--ul-ic,var(--dsw-alias-label-tertiary)) 14%,transparent);flex:0 0 auto}
-.ul-icBlue{--ul-ic:#4d6bfe}
-.ul-icPurple{--ul-ic:#975bf1}
-.ul-icTeal{--ul-ic:#0d8a8a}
-.ul-icOrange{--ul-ic:#e07b39}
-.ul-icGreen{--ul-ic:#00b96b}
-body[data-ds-dark-theme] .ul-icBlue{--ul-ic:#7d95ff}
-body[data-ds-dark-theme] .ul-icPurple{--ul-ic:#b18cff}
-body[data-ds-dark-theme] .ul-icTeal{--ul-ic:#3bc5c5}
-body[data-ds-dark-theme] .ul-icOrange{--ul-ic:#e89a5c}
-body[data-ds-dark-theme] .ul-icGreen{--ul-ic:#2fbf7c}
+.ul-icBlue{--ul-ic:var(--dsw-tone-1,#4d6bfe)}
+.ul-icGreen{--ul-ic:var(--dsw-tone-2,#00b96b)}
+.ul-icOrange{--ul-ic:var(--dsw-tone-3,#e07b39)}
+.ul-icPurple{--ul-ic:var(--dsw-tone-4,#975bf1)}
+.ul-icTeal{--ul-ic:var(--dsw-tone-5,#0d8a8a)}
+.ul-icPink{--ul-ic:var(--dsw-tone-6,#d34591)}
+.ul-icRed{--ul-ic:#e5646e}
+body[data-ds-dark-theme] .ul-icRed{--ul-ic:#f0737c}
 .ul-cardValue{font-size:18px;font-weight:600;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ul-cardSub{font-size:11px;color:var(--dsw-alias-label-tertiary);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* Full-width strip, every cell the SAME width (flex-basis 0 → truly equal),
@@ -228,7 +226,7 @@ body[data-ds-dark-theme] .ul-icGreen{--ul-ic:#2fbf7c}
 .ul-bandItem{flex:1 1 0;min-width:0;box-sizing:border-box;padding:12px 14px;position:relative;cursor:default}
 .ul-bandItem+.ul-bandItem{border-left:1px solid var(--dsw-alias-border-l2)}
 .ul-bandValue{font-size:19px;font-weight:600;color:var(--dsw-alias-label-primary);font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ul-bandLabel{font-size:12px;color:var(--dsw-alias-label-tertiary);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ul-bandLabel{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dsw-alias-label-tertiary);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ul-bandSub{font-size:11px;color:var(--dsw-alias-label-tertiary);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ul-note{color:var(--dsw-alias-label-tertiary);font-size:12px;padding:8px 0}
 .ul-error{color:var(--dsw-alias-label-secondary);font-size:12px;display:flex;gap:8px;align-items:center}
@@ -266,6 +264,8 @@ body[data-ds-dark-theme] .ul-icGreen{--ul-ic:#2fbf7c}
 .ul-heat2{fill:color-mix(in srgb,var(--dsw-tone-1) 55%,transparent)}
 .ul-heat3{fill:color-mix(in srgb,var(--dsw-tone-1) 75%,transparent)}
 .ul-heat4{fill:color-mix(in srgb,var(--dsw-tone-1) 95%,transparent)}
+.ul-heatLegend{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--dsw-alias-label-tertiary)}
+.ul-heatKey{width:12px;height:12px;border-radius:3px;display:inline-block}
 .ul-donutRow{display:flex;flex-direction:column;align-items:center;gap:14px}
 .ul-donutWrap{position:relative;flex:0 0 auto}
 .ul-donutLegend{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;min-width:0}
@@ -389,6 +389,10 @@ body[data-ds-dark-theme] .ul-tone-output{--ul-bucket:#ff85c0}
       output: 'M12 21V9M7 14l5-5 5 5M4 3h16', // ↑
       hit: 'M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z', // ◎
       speed: 'M13 2 4 14h7l-1 8 9-12h-7l1-8Z', // ⚡
+      today: 'M7 3v4M17 3v4M4 9h16M6 5h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z', // calendar
+      clock: 'M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18ZM12 7v5l3 2', // ttft
+      flame: 'M12 22a7 7 0 0 0 7-7c0-2-1-3.9-2.5-5.5C15 8 13.5 6.5 13 3c-3 2-6 5.5-6 9a7 7 0 0 0 7 10Z', // streak
+      bars: 'M5 20v-6M11 20V6M17 20v-9M3 20h18', // peak day
     }
     const cardIcon = (d) => h('svg', {
       width: 12, height: 12, viewBox: '0 0 24 24', fill: 'none',
@@ -418,7 +422,7 @@ body[data-ds-dark-theme] .ul-tone-output{--ul-bucket:#ff85c0}
     // below, and NOTHING truncated — full precision lives in the hover card
     // (detail rows with per-metric color dots). Vertical 1px dividers come
     // from CSS (.ul-bandItem + .ul-bandItem), so the first item has none.
-    function BandItem({ label, value, detail }) {
+    function BandItem({ label, value, detail, icon, tone }) {
       const [hov, setHov] = React.useState(false)
       return h('div', {
         className: 'ul-bandItem',
@@ -426,7 +430,9 @@ body[data-ds-dark-theme] .ul-tone-output{--ul-bucket:#ff85c0}
         onMouseLeave: () => setHov(false),
       },
         h('div', { className: 'ul-bandValue' }, value),
-        h('div', { className: 'ul-bandLabel' }, label),
+        h('div', { className: 'ul-bandLabel' },
+          icon ? h('span', { className: tone ? `ul-cardIcon ${tone}` : 'ul-cardIcon' }, icon) : null,
+          label),
         hov && Array.isArray(detail) && detail.length > 0
           ? h(ChartTip, { style: { left: '50%', top: 'calc(100% + 6px)', transform: 'translateX(-50%)', whiteSpace: 'nowrap' } },
             detail.map((r) => h(TipRow, { key: `${r.name}:${r.value}`, color: r.color ?? null },
@@ -463,37 +469,37 @@ body[data-ds-dark-theme] .ul-tone-output{--ul-bucket:#ff85c0}
       return h('section', { className: 'ul-sec' },
         h('div', { className: 'ul-secTitle' }, t('sumTitle')),
         h('div', { className: 'ul-band' },
-          h(BandItem, { label: t('totalTokens'), value: fmtTok(s.tokens), detail: [
+          h(BandItem, { label: t('totalTokens'), icon: cardIcon(CARD_ICON_D.tokens), tone: 'ul-icPurple', value: fmtTok(s.tokens), detail: [
             tokRow(PALETTE[0], t('inputTok'), s.inputTokens),
             tokRow(PALETTE[1], t('outputTok'), s.outputTokens),
             tokRow(PALETTE[4], t('cacheReadTok'), s.cacheReadTokens),
             tokRow(PALETTE[2], t('cacheWriteTok'), s.cacheWriteTokens),
           ] }),
-          h(BandItem, { label: t('todayTokens'), value: fmtTok(s.todayTokens ?? 0), detail: [
+          h(BandItem, { label: t('todayTokens'), icon: cardIcon(CARD_ICON_D.today), tone: 'ul-icTeal', value: fmtTok(s.todayTokens ?? 0), detail: [
             tokRow(null, t('todayTokens'), s.todayTokens ?? 0),
             { color: null, name: t('requests'), value: fmtInt(s.todayRequests ?? 0) },
           ] }),
-          h(BandItem, { label: t('requests'), value: fmtInt(s.requests), detail: [
+          h(BandItem, { label: t('requests'), icon: cardIcon(CARD_ICON_D.requests), tone: 'ul-icBlue', value: fmtInt(s.requests), detail: [
             { color: null, name: t('requests'), value: fmtInt(s.requests) },
             { color: PALETTE[3], name: t('failures'), value: fmtInt(s.failures) },
             { color: null, name: t('errorRate'), value: fmtPct(s.errorRate) },
           ] }),
-          h(BandItem, { label: t('cacheHit'), value: fmtPct(s.cacheHitRate), detail: [
+          h(BandItem, { label: t('cacheHit'), icon: cardIcon(CARD_ICON_D.hit), tone: 'ul-icGreen', value: fmtPct(s.cacheHitRate), detail: [
             { color: null, name: t('cacheHit'), value: fmtPct(s.cacheHitRate) },
             tokRow(PALETTE[4], t('cacheReadTok'), s.cacheReadTokens),
             tokRow(PALETTE[2], t('cacheWriteTok'), s.cacheWriteTokens),
           ] }),
-          h(BandItem, { label: t('avgTtft'), value: fmtMs(s.avgFirstTokenMs), detail: [
+          h(BandItem, { label: t('avgTtft'), icon: cardIcon(CARD_ICON_D.clock), tone: 'ul-icPink', value: fmtMs(s.avgFirstTokenMs), detail: [
             { color: null, name: t('avgTtft'), value: s.avgFirstTokenMs === null ? t('na') : `${fmtInt(s.avgFirstTokenMs)} ms` },
           ] }),
-          h(BandItem, { label: t('decodeSpeed'), value: fmtSpeed(s.tokensPerSecond), detail: [
+          h(BandItem, { label: t('decodeSpeed'), icon: cardIcon(CARD_ICON_D.speed), tone: 'ul-icOrange', value: fmtSpeed(s.tokensPerSecond), detail: [
             { color: null, name: t('decodeSpeed'), value: fmtSpeed(s.tokensPerSecond) },
           ] }),
-          h(BandItem, { label: t('streak'), value: `${fmtInt(s.streakDays)} ${t('streakUnit')}`, detail: [
+          h(BandItem, { label: t('streak'), icon: cardIcon(CARD_ICON_D.flame), tone: 'ul-icRed', value: `${fmtInt(s.streakDays)} ${t('streakUnit')}`, detail: [
             { color: null, name: t('streak'), value: `${fmtInt(s.streakDays)} ${t('streakUnit')}` },
             { color: null, name: t('activeDays'), value: `${fmtInt(s.activeDays)} ${t('streakUnit')}` },
           ] }),
-          s.peakDay ? h(BandItem, { label: t('peakDay'), value: fmtTok(s.peakDay.tokens), detail: [
+          s.peakDay ? h(BandItem, { label: t('peakDay'), icon: cardIcon(CARD_ICON_D.bars), tone: 'ul-icBlue', value: fmtTok(s.peakDay.tokens), detail: [
             { color: null, name: t('peakDay'), value: `${fmtInt(s.peakDay.tokens)} tokens` },
             { color: null, name: '', value: s.peakDay.day },
           ] }) : null))
@@ -781,14 +787,10 @@ body[data-ds-dark-theme] .ul-tone-output{--ul-bucket:#ff85c0}
     // — out-of-range and future days as level-0 — so the grid is always a
     // clean slab with no ragged holes. Geometry is measured: a ResizeObserver
     // sizes square cells to the container width (no fixed natural width).
-    // Mode segment: day tokens / week sums / running total. The geometry core
+    // Day-tokens heatmap (the day/week/cum mode segment was removed in favor
+    // of the 少→多 level legend). The geometry core
     // (heatGeometry/heatRowOf/heatMonthLabels) is mirrored verbatim in
     // src/client/heatgeo.check.mjs with node assertions.
-    const HEAT_MODES = [
-      { id: 'day', label: 'hmDay' },
-      { id: 'week', label: 'hmWeek' },
-      { id: 'cum', label: 'hmCum' },
-    ]
     const HEAT_GUTTER = 26
     const HEAT_GAP = 3
     const HEAT_LABEL_H = 16
@@ -832,7 +834,6 @@ body[data-ds-dark-theme] .ul-tone-output{--ul-bucket:#ff85c0}
     function HeatmapSection({ tick }) {
       const state = useApi('heatmap', { weeks: 52 }, [tick])
       const [hover, setHover] = React.useState(null) // hovered data cell
-      const [mode, setMode] = React.useState('day')
       // Callback ref (not useEffect+useRef): the wrap only exists AFTER the
       // data arrives — a mount-time effect would see null and never observe,
       // pinning wrapW at 0 and the grid at minimum step.
@@ -852,19 +853,19 @@ body[data-ds-dark-theme] .ul-tone-output{--ul-bucket:#ff85c0}
         }
       }, [])
       React.useEffect(() => () => { if (roRef.current) roRef.current.disconnect() }, [])
-      const modeSeg = h('div', { className: 'ul-seg' },
-        HEAT_MODES.map((m) => h('button', {
-          key: m.id, type: 'button',
-          className: m.id === mode ? 'ul-segBtn ul-segActive' : 'ul-segBtn',
-          onClick: () => setMode(m.id),
-        }, t(m.label))))
+      // 少→多 level legend in the card head (replaces the day/week/cum mode
+      // segment; the heatmap is day-tokens only now).
+      const legend = h('div', { className: 'ul-heatLegend' },
+        h('span', null, t('less')),
+        [0, 1, 2, 3, 4].map((lv) => h('span', { key: lv, className: `ul-heatKey ul-heat${lv}` })),
+        h('span', null, t('more')))
       const stateData = state.data
       const dataBad = !stateData || !stateData.days || stateData.days.length === 0
         || Number.isNaN(heatDayMs(stateData.days[0].day))
-      // Empty/loading/error states keep the card frame + title + mode toggle.
+      // Empty/loading/error states keep the card frame + title + legend.
       if (state.loading || state.error || dataBad) {
         return h('section', { className: 'ul-chartCard' },
-          h('div', { className: 'ul-cardHead' }, h('div', { className: 'ul-secTitle' }, t('heatTitle')), modeSeg),
+          h('div', { className: 'ul-cardHead' }, h('div', { className: 'ul-secTitle' }, t('heatTitle')), legend),
           state.loading || state.error ? h(LoadState, { state }) : h('div', { className: 'ul-note' }, t('empty')))
       }
       const data = stateData
@@ -881,19 +882,8 @@ body[data-ds-dark-theme] .ul-tone-output{--ul-bucket:#ff85c0}
           cells.push({ day, col, row, ms, d: byDay.get(day) ?? null })
         }
       }
-      // Mode values from REAL data days only: week sums per column, running total.
-      const weekSum = []
-      const cumByDay = new Map()
-      let run = 0
-      for (const d of data.days) {
-        const ms = heatDayMs(d.day)
-        if (Number.isNaN(ms) || ms < geo.weekStartMs || ms > geo.weekEndMs) continue
-        const col = Math.floor((ms - geo.weekStartMs) / HEAT_DAY_MS / 7)
-        weekSum[col] = (weekSum[col] || 0) + d.tokens
-        run += d.tokens
-        cumByDay.set(d.day, run)
-      }
-      const valueOf = (c) => (c.d === null ? 0 : mode === 'week' ? (weekSum[c.col] ?? 0) : mode === 'cum' ? (cumByDay.get(c.day) ?? 0) : c.d.tokens)
+      // Day tokens only (the mode segment was replaced by the level legend).
+      const valueOf = (c) => (c.d === null ? 0 : c.d.tokens)
       let max = 0
       for (const c of cells) { const v = valueOf(c); if (v > max) max = v }
       if (max <= 0) max = 1
@@ -920,7 +910,7 @@ body[data-ds-dark-theme] .ul-tone-output{--ul-bucket:#ff85c0}
       return h('section', { className: 'ul-chartCard' },
         h('div', { className: 'ul-cardHead' },
           h('div', { className: 'ul-secTitle' }, t('heatTitle')),
-          modeSeg),
+          legend),
         h('div', { className: 'ul-heatWrap', ref: wrapRef },
           h('div', { className: 'ul-heatInner', style: { width: `${geo.width}px` } },
             h('svg', { width: geo.width, height: geo.height, viewBox: `0 0 ${geo.width} ${geo.height}`, role: 'img', style: { display: 'block' } },
