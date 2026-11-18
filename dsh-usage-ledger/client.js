@@ -22,7 +22,7 @@ window.__ModuleLoader__.load({
 
     // ── locale dictionaries (zh/en keys must stay aligned) ────────────────
     const zh = {
-      nav: '用量账本', tab: '用量', back: '返回', loading: '加载中…',
+      nav: '使用统计', tab: '用量', back: '返回', loading: '加载中…',
       loadError: '加载失败', retry: '重试', empty: '暂无数据', na: '—',
       degraded: '明细数据不可用，以下为永久汇总（KV 模式）。',
       backfill: '正在回填历史数据',
@@ -58,7 +58,7 @@ window.__ModuleLoader__.load({
       dwToday: '（今天）', donutRange: '（近 {n}）',
     }
     const en = {
-      nav: 'Usage ledger', tab: 'Usage', back: 'Back', loading: 'Loading…',
+      nav: 'Usage statistics', tab: 'Usage', back: 'Back', loading: 'Loading…',
       loadError: 'Failed to load', retry: 'Retry', empty: 'No data yet', na: '—',
       degraded: 'Detail unavailable; showing permanent rollup only (KV mode).',
       backfill: 'Backfilling history',
@@ -1536,11 +1536,12 @@ body[data-ds-dark-theme] .ul-tone-output{--ul-bucket:#ff85c0}
     function PanelPage(props) { return h(PanelBody, { showBack: true, goBack: props.goBack }) }
     function Section() { return h(PanelBody, { showBack: false }) }
 
+    // Sidebar row glyph: lucide BarChart3 at stroke 1.5, identical to
+    // token-total's StatsIcon (the two rows read as one family).
     function SidebarIcon({ size }) {
       const s = typeof size === 'number' ? size : 16
-      return h('svg', { width: s, height: s, viewBox: '0 0 36 36', fill: 'none', stroke: 'currentColor', strokeWidth: 2.4, 'aria-hidden': true },
-        h('path', { d: 'M18 11C15 8.5 11 8 7.5 9L7.5 26C11 25 15 25.5 18 28C21 25.5 25 25 28.5 26L28.5 9C25 8 21 8.5 18 11Z', strokeLinejoin: 'round' }),
-        h('path', { d: 'M11 21v3M14.5 18v6M18 15v9M22 20l2.5-2.5 2 1.5 3-3.5', strokeLinecap: 'round', strokeLinejoin: 'round' }))
+      return h('svg', { width: s, height: s, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true },
+        h('path', { d: 'M3 3v18h18 M18 17V9 M13 17V5 M8 17v-3' }))
     }
 
     return {

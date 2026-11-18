@@ -1,0 +1,644 @@
+════ 逐会话对账 · dsh-usage-ledger vs dsh-token-total · compare-sessions.mjs ════
+模式: 报告（默认，exit 0）   时间: 2026-11-18T03:31:05.702Z
+端口: 58661（我方 http://127.0.0.1:58661/usage-ledger/api/session）
+
+── 逐会话对账（100 会话；按规模降序）
+session     name                      我方 tokens      他方 tokens      Δ             Δ%      标记
+02c869df-4  SPI_CATL                  282,771,438    142,013,718    +140,757,720  49.78%  ✗
+bbf11a8f-0  THA6102W代码                206,838,083    208,199,833    -1,361,750    0.65%   ~
+e9ada59f-5  用量账本                      178,397,092    180,051,208    -1,654,116    0.92%   ~ ACT
+ba838400-f  THA6102W代码 (1)            115,189,948    116,318,089    -1,128,141    0.97%   ~
+777c8a84-6  详细分析该工程                   107,983,550    71,394,738     +36,588,812   33.88%  ✗
+8c0656bf-9  CPU和内存占用分析                105,655,638    91,450,567     +14,205,071   13.44%  ✗
+3832f91d-e  cpu和内存占用分析                92,562,235     75,646,524     +16,915,711   18.27%  ✗
+33cedff2-f  分析工程功能与流程                 92,032,623     51,323,999     +40,708,624   44.23%  ✗
+db8b0e0f-2  架构文档修改                    86,465,881     86,974,484     -508,603      0.58%   ~
+3b94c33b-b  宏生成检查                     82,966,737     50,507,859     +32,458,878   39.12%  ✗
+1069f72e-a  glm5.2问题分析                73,056,919     67,552,987     +5,503,932    7.53%   ✗
+23aa6ca8-d  Normal分析                  70,812,176     71,055,617     -243,441      0.34%   ~
+b87c4e6a-3  寄存器偏移计算工具                 57,161,563     57,481,157     -319,594      0.56%   ~
+b936c466-7  查看当前分支                    55,503,618     55,630,369     -126,751      0.23%   ~
+28365027-3  工程中的patch是使用svn生成的        47,116,877     30,746,359     +16,370,518   34.74%  ✗
+3a746e6c-1  Normal分析1                 39,252,560     39,252,560     +0            0.00%   ✓
+d703175d-6  QM_ref 拉取变基到最新            38,631,776     38,631,776     +0            0.00%   ✓
+2621d5c8-a  DSH界面优化                   36,023,036     23,227,832     +12,795,204   35.52%  ✗
+215de1f9-3  SPI波特率与kernal关系           31,161,790     15,580,895     +15,580,895   50.00%  ✗
+423cb341-f  会议纪要skills                29,435,887     29,435,887     +0            0.00%   ✓
+caab691e-a  ai-proxy-gui内存占用分析        27,325,263     26,106,542     +1,218,721    4.46%   ✗
+d005c96c-d  core代码                    23,953,740     23,953,740     +0            0.00%   ✓
+100b7430-c  Verify ICU audit report   22,146,526     11,073,263     +11,073,263   50.00%  ✗
+59afd24d-6  搜集ARM PMU官方与Linux证据       19,777,665     19,777,665     +0            0.00%   ✓
+3240bda7-e  git状态检查                   16,726,306     8,363,153      +8,363,153    50.00%  ✗
+f2d05e25-9  分析copy工程下的内容，重点分          11,812,752     6,614,039      +5,198,713    44.01%  ✗
+36e72fb2-8  QAC自动化工具                  10,362,271     10,362,271     +0            0.00%   ✓
+d90de402-0  搜集GTM-IP寄存器图证据            8,946,097      9,101,120      -155,023      1.70%   ✗
+4dee6432-2  Analyze EB tresos plugins/7,975,748      3,987,874      +3,987,874    50.00%  ✗
+c203d2bc-4  QAC违例分析                   7,779,004      7,779,004      +0            0.00%   ✓
+41689d9e-f  Analyze MCAL module layer 7,475,818      3,737,909      +3,737,909    50.00%  ✗
+dd617757-b  搜集ARM MPU/ISB官方证据         5,753,955      5,753,955      +0            0.00%   ✓
+da7d7b3e-a  核对 SPI 序列图 01-10          5,263,652      2,631,826      +2,631,826    50.00%  ✗
+e48b8aea-3  Verify PWM audit report   5,035,030      2,517,515      +2,517,515    50.00%  ✗
+8cfbc58f-a  Analyze SDK HAL layer     4,371,926      2,185,963      +2,185,963    50.00%  ✗
+066f0774-4  TestCASE530分析             4,369,738      2,184,869      +2,184,869    50.00%  ✗
+2a81705f-3  SPI的setmode对DMA影响分析       3,810,109      3,810,109      +0            0.00%   ✓
+b108dd58-c  BaoAnalyze                3,808,526      1,904,263      +1,904,263    50.00%  ✗
+3e9c4dbb-f  storage 层实现（第三次）          3,525,288      3,525,288      +0            0.00%   ✓
+e6e734ba-c  详细分析工程结构                  3,390,768      3,390,768      +0            0.00%   ✓
+bb219b78-5  Verify GPT audit report   3,376,422      1,688,211      +1,688,211    50.00%  ✗
+2a9fc210-d  核对 SPI 序列图 11-19          3,149,050      1,574,525      +1,574,525    50.00%  ✗
+5ce5401d-a  分析INTT_Icu_00108失败原因      2,900,116      2,900,116      +0            0.00%   ✓
+9c69cf9e-3  面板视觉打磨+入场动画               1,990,735      1,990,735      +0            0.00%   ✓
+af8fd9f0-8  排查ICU锁函数对外接口              1,969,867      1,969,867      +0            0.00%   ✓
+6e7f7bec-d  核对 SPI 序列图 20-30          1,784,768      892,384        +892,384      50.00%  ✗
+96c86e61-8  basetimer流程图              1,762,982      1,762,982      +0            0.00%   ✓
+3598cd85-1  ui 组件实现（第三次）              1,672,927      1,672,927      +0            0.00%   ✓
+5170d545-d  悬停 tooltip 实现             1,507,140      1,551,790      -44,650       2.88%   ✗
+f854cedc-2  collector 层实现             1,438,666      1,438,666      +0            0.00%   ✓
+6e6061dc-6  collector 层实现（重开）         1,309,136      1,309,136      +0            0.00%   ✓
+0e78bd3c-9  api 路由层实现                 992,182        1,004,814      -12,632       1.26%   ✗
+1c4d9520-c  baetimer静态图               977,253        977,253        +0            0.00%   ✓
+8c06cf23-a  分析 main.py GUI 架构         820,377        820,377        +0            0.00%   ✓
+947e303a-2  UI/UX 专家评审                632,104        632,104        +0            0.00%   ✓
+b3c0ce48-9  检查IOM/GTM/OCU序列图          607,809        607,809        +0            0.00%   ✓
+f8e498d1-0  storage 层实现（重开）           532,924        532,924        +0            0.00%   ✓
+2588592f-0  核对 SPI 序列图 31-40          524,188        262,094        +262,094      50.00%  ✗
+600cb1cc-2  DEV error检测实现逻辑分析         495,933        495,933        +0            0.00%   ✓
+07c225a7-0  storage 层实现               470,036        470,036        +0            0.00%   ✓
+807550c7-1  分析 SubTool 小工具集           421,952        421,952        +0            0.00%   ✓
+548fe562-2  basetimer序列图              316,728        316,728        +0            0.00%   ✓
+7110ea5d-6  分析 QAC 与编译模块              199,171        199,171        +0            0.00%   ✓
+0ec524d7-7  采集两插件最新对账数据               156,063        156,063        +0            0.00%   ✓ ACT
+b8bc4d37-a  ui 客户端实现（重开）              121,190        121,190        +0            0.00%   ✓
+84102073-f  分析后端核心模块                  93,031         93,031         +0            0.00%   ✓
+d78dce2e-c  查ICU序列图image10-14         54,247         54,247         +0            0.00%   ✓
+6a60fdf9-b  查BASETIMER序列图image7-10    51,667         51,667         +0            0.00%   ✓
+cc018f34-d  查ICU序列图image6-9           47,548         47,548         +0            0.00%   ✓
+44d06ad3-4  查BASETIMER序列图image3-6     40,288         40,288         +0            0.00%   ✓
+e3fc05e0-8  检查PWM/BASETIMER/MCALLIB序列图18,897         18,897         +0            0.00%   ✓
+2702755c-0  检查PWM/BASETIMER/MCALLIB序列图18,788         18,788         +0            0.00%   ✓
+211bcca3-e  检查GPT和ICU序列图              18,720         18,720         +0            0.00%   ✓
+ea15e1e7-0  ui 客户端实现                  11,669         11,669         +0            0.00%   ✓
+edd54647-5  检查GPT和ICU序列图              9,192          9,192          +0            0.00%   ✓
+6415009b-0  查GPT序列图image8-11重试        9,146          9,146          +0            0.00%   ✓
+e23077ab-9  查GPT序列图image4-7重试         9,090          9,090          +0            0.00%   ✓
+1a9ca900-9  查GPT序列图image8-11          8,966          8,966          +0            0.00%   ✓
+5ac5d146-b  查GPT序列图image4-7           8,960          8,960          +0            0.00%   ✓
+c5f4f150-7  查PWM序列图image4-7           8,867          8,867          +0            0.00%   ✓
+91b48855-c  查PWM序列图image6-7           8,862          8,862          +0            0.00%   ✓
+498d7b35-f  查PWM序列图image8-9           8,858          8,858          +0            0.00%   ✓
+95697064-7  查PWM序列图image10-11         8,858          8,858          +0            0.00%   ✓
+23c61e45-e  查PWM序列图image4-5           8,841          8,841          +0            0.00%   ✓
+bd17fa62-e  查PWM序列图image8-11          8,818          8,818          +0            0.00%   ✓
+30893513-1  —                         0              0              +0            0.00%   ✓
+0377dbd6-3  —                         0              0              +0            0.00%   ✓
+268496e8-a  —                         0              0              +0            0.00%   ✓
+3c771c5f-c  —                         0              0              +0            0.00%   ✓
+777056eb-2  —                         0              0              +0            0.00%   ✓
+787e3a39-7  —                         0              0              +0            0.00%   ✓
+7b6d3799-d  —                         0              0              +0            0.00%   ✓
+8e539de5-e  —                         0              0              +0            0.00%   ✓
+a472a24a-e  —                         0              0              +0            0.00%   ✓
+f063aee0-9  —                         0              0              +0            0.00%   ✓
+c0473b87-d  —                         0              0              +0            0.00%   ✓
+291f66ef-f  —                         0              0              +0            0.00%   ✓
+47154ed4-4  详细分析该工程 (1)               0              0              +0            0.00%   ✓
+ca680f6d-c  —                         0              0              +0            0.00%   ✓
+8ce46656-5  —                         0              0              +0            0.00%   ✓
+
+── 汇总：总对比 100 · 精确一致 65 · 有差异 35 · 端点错误 0
+
+── 差异会话明细（四桶 + 归因线索）
+
+  02c869df-463c-4cb8-b51a-9b02f4e0806a（SPI_CATL）  
+    tokens     我方 282,771,438 vs 他方 142,013,718  Δ +140,757,720（49.78%）
+    input      我方 32,956,934 vs 他方 16,486,000  Δ +16,470,934（49.98%）
+    output     我方 1,219,690 vs 他方 610,919  Δ +608,771（49.91%）
+    cacheRead  我方 248,594,814 vs 他方 124,916,799  Δ +123,678,015（49.75%）
+    ↳ 需人工看
+
+  bbf11a8f-04b3-4f82-8ec5-ae5f5c6c1c8d（THA6102W代码）  
+    tokens     我方 206,838,083 vs 他方 208,199,833  Δ -1,361,750（0.65%）
+    input      我方 17,154,746 vs 他方 17,168,999  Δ -14,253（0.08%）
+    output     我方 1,063,817 vs 他方 1,072,818  Δ -9,001（0.84%）
+    cacheRead  我方 188,619,520 vs 他方 189,958,016  Δ -1,338,496（0.70%）
+    ↳ 需人工看
+
+  e9ada59f-5555-4279-a7ac-16cfe742bbf9（用量账本）  [ACT 活会话]
+    tokens     我方 178,397,092 vs 他方 180,051,208  Δ -1,654,116（0.92%）
+    input      我方 16,637,869 vs 他方 16,648,216  Δ -10,347（0.06%）
+    output     我方 621,068 vs 他方 622,341  Δ -1,273（0.20%）
+    cacheRead  我方 161,138,155 vs 他方 162,780,651  Δ -1,642,496（1.01%）
+    ↳ 活会话：实时尾巴时序差（我方 live 计数 vs 他方按需读日志快照）——但若多次运行 Δ 恒定，则非时序差而是固定历史缺口，需人工看
+
+  ba838400-fbfb-43fd-84fa-fff0dc8aaee1（THA6102W代码 (1)）  
+    tokens     我方 115,189,948 vs 他方 116,318,089  Δ -1,128,141（0.97%）
+    input      我方 11,231,988 vs 他方 11,241,715  Δ -9,727（0.09%）
+    output     我方 649,224 vs 他方 657,558  Δ -8,334（1.27%）
+    cacheRead  我方 103,308,736 vs 他方 104,418,816  Δ -1,110,080（1.06%）
+    ↳ 需人工看
+
+  777c8a84-6166-422b-8d55-a45924f5cf37（详细分析该工程）  
+    tokens     我方 107,983,550 vs 他方 71,394,738  Δ +36,588,812（33.88%）
+    input      我方 8,907,339 vs 他方 6,372,660  Δ +2,534,679（28.46%）
+    output     我方 941,994 vs 他方 611,125  Δ +330,869（35.12%）
+    cacheRead  我方 98,134,217 vs 他方 64,410,953  Δ +33,723,264（34.36%）
+    ↳ 需人工看
+
+  8c0656bf-9d0d-4842-8414-169362e40688（CPU和内存占用分析）  
+    tokens     我方 105,655,638 vs 他方 91,450,567  Δ +14,205,071（13.44%）
+    input      我方 6,542,807 vs 他方 5,627,289  Δ +915,518（13.99%）
+    output     我方 840,703 vs 他方 677,806  Δ +162,897（19.38%）
+    cacheRead  我方 98,272,128 vs 他方 85,145,472  Δ +13,126,656（13.36%）
+    ↳ 需人工看
+
+  3832f91d-e82d-473f-a950-13b4bc7cb649（cpu和内存占用分析）  
+    tokens     我方 92,562,235 vs 他方 75,646,524  Δ +16,915,711（18.27%）
+    input      我方 13,114,268 vs 他方 10,711,576  Δ +2,402,692（18.32%）
+    output     我方 706,493 vs 他方 524,728  Δ +181,765（25.73%）
+    cacheRead  我方 78,741,474 vs 他方 64,410,220  Δ +14,331,254（18.20%）
+    ↳ 需人工看
+
+  33cedff2-fb80-47f3-9f8d-7ddb9751b4a9（分析工程功能与流程）  
+    tokens     我方 92,032,623 vs 他方 51,323,999  Δ +40,708,624（44.23%）
+    input      我方 3,473,082 vs 他方 2,149,562  Δ +1,323,520（38.11%）
+    output     我方 437,615 vs 他方 270,466  Δ +167,149（38.20%）
+    cacheRead  我方 88,121,926 vs 他方 48,903,971  Δ +39,217,955（44.50%）
+    ↳ 需人工看
+
+  db8b0e0f-23fa-4dfb-bf22-19e8b8a0df72（架构文档修改）  
+    tokens     我方 86,465,881 vs 他方 86,974,484  Δ -508,603（0.58%）
+    input      我方 9,355,161 vs 他方 9,361,222  Δ -6,061（0.06%）
+    output     我方 857,728 vs 他方 865,998  Δ -8,270（0.95%）
+    cacheRead  我方 76,252,992 vs 他方 76,747,264  Δ -494,272（0.64%）
+    ↳ 需人工看
+
+  3b94c33b-bc4d-43de-a793-f3575c627989（宏生成检查）  
+    tokens     我方 82,966,737 vs 他方 50,507,859  Δ +32,458,878（39.12%）
+    input      我方 9,454,823 vs 他方 5,604,754  Δ +3,850,069（40.72%）
+    output     我方 517,522 vs 他方 316,566  Δ +200,956（38.83%）
+    cacheRead  我方 72,994,392 vs 他方 44,586,539  Δ +28,407,853（38.92%）
+    ↳ 需人工看
+
+  1069f72e-a182-40d9-a4d7-9600f51586ff（glm5.2问题分析）  
+    tokens     我方 73,056,919 vs 他方 67,552,987  Δ +5,503,932（7.53%）
+    input      我方 8,619,966 vs 他方 8,351,869  Δ +268,097（3.11%）
+    output     我方 341,005 vs 他方 283,666  Δ +57,339（16.81%）
+    cacheRead  我方 64,095,948 vs 他方 58,917,452  Δ +5,178,496（8.08%）
+    ↳ 需人工看
+
+  23aa6ca8-d3fa-42a7-b0f2-46f9b6b88b36（Normal分析）  
+    tokens     我方 70,812,176 vs 他方 71,055,617  Δ -243,441（0.34%）
+    input      我方 10,535,842 vs 他方 10,541,879  Δ -6,037（0.06%）
+    output     我方 308,410 vs 他方 309,270  Δ -860（0.28%）
+    cacheRead  我方 59,967,924 vs 他方 60,204,468  Δ -236,544（0.39%）
+    ↳ 需人工看
+
+  b87c4e6a-349f-4e75-9fee-761a211a04b5（寄存器偏移计算工具）  
+    tokens     我方 57,161,563 vs 他方 57,481,157  Δ -319,594（0.56%）
+    input      我方 1,601,952 vs 他方 1,603,179  Δ -1,227（0.08%）
+    output     我方 284,923 vs 他方 285,850  Δ -927（0.32%）
+    cacheRead  我方 55,274,688 vs 他方 55,592,128  Δ -317,440（0.57%）
+    ↳ 需人工看
+
+  b936c466-7949-45f5-8d93-2918cec76e78（查看当前分支）  
+    tokens     我方 55,503,618 vs 他方 55,630,369  Δ -126,751（0.23%）
+    input      我方 2,395,687 vs 他方 2,398,993  Δ -3,306（0.14%）
+    output     我方 152,085 vs 他方 152,394  Δ -309（0.20%）
+    cacheRead  我方 52,955,846 vs 他方 53,078,982  Δ -123,136（0.23%）
+    ↳ 需人工看
+
+  28365027-3e18-4bc3-b0bf-119a24671fe2（工程中的patch是使用svn生成的）  
+    tokens     我方 47,116,877 vs 他方 30,746,359  Δ +16,370,518（34.74%）
+    input      我方 2,771,978 vs 他方 1,817,502  Δ +954,476（34.43%）
+    output     我方 348,126 vs 他方 200,948  Δ +147,178（42.28%）
+    cacheRead  我方 43,996,773 vs 他方 28,727,909  Δ +15,268,864（34.70%）
+    ↳ 需人工看
+
+  2621d5c8-a6dc-4954-bee5-0a93cd01f268（DSH界面优化）  
+    tokens     我方 36,023,036 vs 他方 23,227,832  Δ +12,795,204（35.52%）
+    input      我方 4,065,547 vs 他方 2,480,724  Δ +1,584,823（38.98%）
+    output     我方 196,211 vs 他方 111,653  Δ +84,558（43.10%）
+    cacheRead  我方 31,761,278 vs 他方 20,635,455  Δ +11,125,823（35.03%）
+    ↳ 需人工看
+
+  215de1f9-3d6a-41e0-abb6-11455d46097c（SPI波特率与kernal关系）  
+    tokens     我方 31,161,790 vs 他方 15,580,895  Δ +15,580,895（50.00%）
+    input      我方 5,875,836 vs 他方 2,937,918  Δ +2,937,918（50.00%）
+    output     我方 79,180 vs 他方 39,590  Δ +39,590（50.00%）
+    cacheRead  我方 25,206,774 vs 他方 12,603,387  Δ +12,603,387（50.00%）
+    ↳ 需人工看
+
+  caab691e-adc3-4811-815d-b80790b464e2（ai-proxy-gui内存占用分析）  
+    tokens     我方 27,325,263 vs 他方 26,106,542  Δ +1,218,721（4.46%）
+    input      我方 3,825,974 vs 他方 3,556,868  Δ +269,106（7.03%）
+    output     我方 191,007 vs 他方 174,512  Δ +16,495（8.64%）
+    cacheRead  我方 23,308,282 vs 他方 22,375,162  Δ +933,120（4.00%）
+    ↳ 需人工看
+
+  100b7430-cbd8-4fe1-823e-5ba7604d9650（Verify ICU audit report）  
+    tokens     我方 22,146,526 vs 他方 11,073,263  Δ +11,073,263（50.00%）
+    input      我方 517,470 vs 他方 258,735  Δ +258,735（50.00%）
+    output     我方 201,088 vs 他方 100,544  Δ +100,544（50.00%）
+    cacheRead  我方 21,427,968 vs 他方 10,713,984  Δ +10,713,984（50.00%）
+    ↳ 需人工看
+
+  3240bda7-e792-402a-a2d3-9f24d43973ce（git状态检查）  
+    tokens     我方 16,726,306 vs 他方 8,363,153  Δ +8,363,153（50.00%）
+    input      我方 1,007,776 vs 他方 503,888  Δ +503,888（50.00%）
+    output     我方 151,750 vs 他方 75,875  Δ +75,875（50.00%）
+    cacheRead  我方 15,566,780 vs 他方 7,783,390  Δ +7,783,390（50.00%）
+    ↳ 需人工看
+
+  f2d05e25-9bb2-48f9-8908-3dbd5ecd03ef（分析copy工程下的内容，重点分）  
+    tokens     我方 11,812,752 vs 他方 6,614,039  Δ +5,198,713（44.01%）
+    input      我方 1,092,059 vs 他方 669,378  Δ +422,681（38.70%）
+    output     我方 163,133 vs 他方 91,929  Δ +71,204（43.65%）
+    cacheRead  我方 10,557,560 vs 他方 5,852,732  Δ +4,704,828（44.56%）
+    ↳ 需人工看
+
+  d90de402-0153-428b-a080-2bb73bce1492（搜集GTM-IP寄存器图证据）  
+    tokens     我方 8,946,097 vs 他方 9,101,120  Δ -155,023（1.70%）
+    input      我方 642,543 vs 他方 642,944  Δ -401（0.06%）
+    output     我方 127,362 vs 他方 127,680  Δ -318（0.25%）
+    cacheRead  我方 8,176,192 vs 他方 8,330,496  Δ -154,304（1.85%）
+    ↳ 需人工看
+
+  4dee6432-2dea-4dda-9ab3-baeeae8b4d77（Analyze EB tresos plugins/conf）  
+    tokens     我方 7,975,748 vs 他方 3,987,874  Δ +3,987,874（50.00%）
+    input      我方 346,056 vs 他方 173,028  Δ +173,028（50.00%）
+    output     我方 103,036 vs 他方 51,518  Δ +51,518（50.00%）
+    cacheRead  我方 7,526,656 vs 他方 3,763,328  Δ +3,763,328（50.00%）
+    ↳ 需人工看
+
+  41689d9e-fd45-445c-a5b5-b659eef02c27（Analyze MCAL module layer）  
+    tokens     我方 7,475,818 vs 他方 3,737,909  Δ +3,737,909（50.00%）
+    input      我方 299,854 vs 他方 149,927  Δ +149,927（50.00%）
+    output     我方 82,716 vs 他方 41,358  Δ +41,358（50.00%）
+    cacheRead  我方 7,093,248 vs 他方 3,546,624  Δ +3,546,624（50.00%）
+    ↳ 需人工看
+
+  da7d7b3e-ac7d-4e9b-affe-c7852f450907（核对 SPI 序列图 01-10）  
+    tokens     我方 5,263,652 vs 他方 2,631,826  Δ +2,631,826（50.00%）
+    input      我方 292,528 vs 他方 146,264  Δ +146,264（50.00%）
+    output     我方 31,522 vs 他方 15,761  Δ +15,761（50.00%）
+    cacheRead  我方 4,939,602 vs 他方 2,469,801  Δ +2,469,801（50.00%）
+    ↳ 需人工看
+
+  e48b8aea-37de-495a-b1db-cb6b13652ffd（Verify PWM audit report）  
+    tokens     我方 5,035,030 vs 他方 2,517,515  Δ +2,517,515（50.00%）
+    input      我方 273,866 vs 他方 136,933  Δ +136,933（50.00%）
+    output     我方 65,100 vs 他方 32,550  Δ +32,550（50.00%）
+    cacheRead  我方 4,696,064 vs 他方 2,348,032  Δ +2,348,032（50.00%）
+    ↳ 需人工看
+
+  8cfbc58f-a321-479f-b56a-a5fee77c9043（Analyze SDK HAL layer）  
+    tokens     我方 4,371,926 vs 他方 2,185,963  Δ +2,185,963（50.00%）
+    input      我方 218,818 vs 他方 109,409  Δ +109,409（50.00%）
+    output     我方 74,004 vs 他方 37,002  Δ +37,002（50.00%）
+    cacheRead  我方 4,079,104 vs 他方 2,039,552  Δ +2,039,552（50.00%）
+    ↳ 需人工看
+
+  066f0774-4f07-4fca-9259-8d5985e59e89（TestCASE530分析）  
+    tokens     我方 4,369,738 vs 他方 2,184,869  Δ +2,184,869（50.00%）
+    input      我方 389,924 vs 他方 194,962  Δ +194,962（50.00%）
+    output     我方 87,334 vs 他方 43,667  Δ +43,667（50.00%）
+    cacheRead  我方 3,892,480 vs 他方 1,946,240  Δ +1,946,240（50.00%）
+    ↳ 需人工看
+
+  b108dd58-cd3b-4776-bb73-a88b01830eee（BaoAnalyze）  
+    tokens     我方 3,808,526 vs 他方 1,904,263  Δ +1,904,263（50.00%）
+    input      我方 317,810 vs 他方 158,905  Δ +158,905（50.00%）
+    output     我方 58,780 vs 他方 29,390  Δ +29,390（50.00%）
+    cacheRead  我方 3,431,936 vs 他方 1,715,968  Δ +1,715,968（50.00%）
+    ↳ 需人工看
+
+  bb219b78-50d1-4b3c-ac96-56461861ad83（Verify GPT audit report）  
+    tokens     我方 3,376,422 vs 他方 1,688,211  Δ +1,688,211（50.00%）
+    input      我方 190,426 vs 他方 95,213  Δ +95,213（50.00%）
+    output     我方 56,140 vs 他方 28,070  Δ +28,070（50.00%）
+    cacheRead  我方 3,129,856 vs 他方 1,564,928  Δ +1,564,928（50.00%）
+    ↳ 需人工看
+
+  2a9fc210-db46-4460-b9cc-fca35045f85f（核对 SPI 序列图 11-19）  
+    tokens     我方 3,149,050 vs 他方 1,574,525  Δ +1,574,525（50.00%）
+    input      我方 158,988 vs 他方 79,494  Δ +79,494（50.00%）
+    output     我方 33,146 vs 他方 16,573  Δ +16,573（50.00%）
+    cacheRead  我方 2,956,916 vs 他方 1,478,458  Δ +1,478,458（50.00%）
+    ↳ 需人工看
+
+  6e7f7bec-d6b0-4a28-9e48-3b8cd48acce3（核对 SPI 序列图 20-30）  
+    tokens     我方 1,784,768 vs 他方 892,384  Δ +892,384（50.00%）
+    input      我方 120,892 vs 他方 60,446  Δ +60,446（50.00%）
+    output     我方 16,312 vs 他方 8,156  Δ +8,156（50.00%）
+    cacheRead  我方 1,647,564 vs 他方 823,782  Δ +823,782（50.00%）
+    ↳ 需人工看
+
+  5170d545-db59-4d3f-aa17-55709027bba4（悬停 tooltip 实现）  
+    tokens     我方 1,507,140 vs 他方 1,551,790  Δ -44,650（2.88%）
+    input      我方 52,031 vs 他方 59,284  Δ -7,253（12.23%）
+    output     我方 29,957 vs 他方 30,746  Δ -789（2.57%）
+    cacheRead  我方 1,425,152 vs 他方 1,461,760  Δ -36,608（2.50%）
+    ↳ 需人工看
+
+  0e78bd3c-9221-4362-96e9-36242047f44f（api 路由层实现）  
+    tokens     我方 992,182 vs 他方 1,004,814  Δ -12,632（1.26%）
+    input      我方 55,244 vs 他方 56,725  Δ -1,481（2.61%）
+    output     我方 27,882 vs 他方 28,025  Δ -143（0.51%）
+    cacheRead  我方 909,056 vs 他方 920,064  Δ -11,008（1.20%）
+    ↳ 需人工看
+
+  2588592f-0620-4ee1-bd22-697c9a01425c（核对 SPI 序列图 31-40）  
+    tokens     我方 524,188 vs 他方 262,094  Δ +262,094（50.00%）
+    input      我方 62,382 vs 他方 31,191  Δ +31,191（50.00%）
+    output     我方 14,952 vs 他方 7,476  Δ +7,476（50.00%）
+    cacheRead  我方 446,854 vs 他方 223,427  Δ +223,427（50.00%）
+    ↳ 需人工看
+
+  （注：他方 session 端点实测无 requests 字段，该项不可对比，已跳过）
+
+── task-11 新字段联调校验（children[] / byModel 四桶）
+  children[] 非空: PASS
+  byModel 四桶齐全: PASS
+  样本（session-bbf11a8f-04b3-4f82-8ec5-ae5f5c6c1c8d）:
+    children[0]: {"id":"session-ba838400-fbfb-43fd-84fa-fff0dc8aaee1","parentId":"session-bbf11a8f-04b3-4f82-8ec5-ae5f5c6c1c8d","kind":"subagent","name":"THA6102W代码 (1)","requests":327,"failures":5,"turns":48,"tokens":115189948,"inputTokens":11231988,"outputTokens":649224,"cacheReadTokens":103308736,"cacheWriteTokens":0,"avgFirstTokenMs":31458,"tokensPerSecond":97.86029648572129}
+    byModel[0]: {"model":"P6","provider":"proxy","tokens":96383467,"requests":295,"failures":1,"inputTokens":8163277,"outputTokens":458846,"cacheReadTokens":87761344,"cacheWriteTokens":0}
+
+── 0.1.7 并排对照（context / composition / 子会话速率；样本 4）
+
+  ▸ bbf11a8f-04b3-4f82-8ec5-ae5f5c6c1c8d（THA6102W代码）   我方 0.1.7 数据来源: live 端点
+    项                                 我方             他方             判定    说明
+    context.totalTokens               130,195        130,195        PASS  ±15%（同为字符估算，允许实现差）
+    context.contextWindow             1,000,000      1,000,000      PASS  精确一致或同为 null
+    context.provider                  proxy          proxy          PASS  一致
+    context.model                     P2             P2             PASS  一致
+    composition.billedTokens          208,199,833    208,199,833    PASS  A2 精确一致（provider 精确 usage）
+    composition.systemPrompt          2,021,569      2,021,569      PASS  ±15%（分桶估算允许实现差）
+    composition.user                  359,690        359,690        PASS  ±15%（分桶估算允许实现差）
+    composition.skill                 677,417        677,417        PASS  ±15%（分桶估算允许实现差）
+    composition.toolResult            71,214,486     71,214,486     PASS  ±15%（分桶估算允许实现差）
+    composition.toolDef               6,489,466      6,489,466      PASS  ±15%（分桶估算允许实现差）
+    composition.injected              3,895,015      3,895,015      PASS  ±15%（分桶估算允许实现差）
+    composition.assistant             81,281,027     81,281,027     PASS  ±15%（分桶估算允许实现差）
+    composition.output                1,072,818      1,072,818      PASS  ±15%（分桶估算允许实现差）
+    子 ba838400-f tokens               115,189,948    116,318,089    FAIL  A1 精确一致（容差 0）
+    子 ba838400-f avgFirstTokenMs      31,458         31,407         PASS  ±15%
+    子 ba838400-f tokensPerSecond      98             98             PASS  ±15%
+    我方 context    : {"totalTokens":130195,"contextWindow":1000000,"provider":"proxy","model":"P2","promptTokens":138239,"cacheHitTokens":137856,"cacheMissTokens":383,"cacheKnown":true,"buckets":[{"key":"systemPrompt","tokens":3107},{"key":"user","tokens":168},{"key":"skill","tokens":1634},{"key":"toolResult","tokens":35173},{"key":"toolDef","tokens":11240},{"key":"injected","tokens":9288},{"key":"assistant","tokens":69585}]}
+    他方 context    : {"totalTokens":130195,"contextWindow":1000000,"provider":"proxy","model":"P2","cacheHitTokens":137856,"cacheMissTokens":383,"cacheKnown":true,"promptTokens":138239,"items":[{"key":"conversation:assistant","category":"conversation","kind":"assistant","label":"","count":64,"tokens":69585},{"key":"results:pwsh","category":"results","label":"pwsh","count":32,"tokens":17625},{"key":"results:grep","category":"results","label":"grep","count":13,"tokens":6055},{"key":"tools:rest","category":"tools","kind":"rest","label":""…
+    我方 composition: {"buckets":[{"key":"systemPrompt","tokens":2021569},{"key":"user","tokens":359690},{"key":"skill","tokens":677417},{"key":"toolResult","tokens":71214486},{"key":"toolDef","tokens":6489466},{"key":"injected","tokens":3895015},{"key":"assistant","tokens":81281027},{"key":"output","tokens":1072818}],"billedTokens":208199833,"totals":{"tokens":208199833,"inputTokens":17168999,"outputTokens":1072818,"cacheReadTokens":189958016,"cacheWriteTokens":0,"reasoningTokens":0},"requests":841}
+    他方 composition: {"buckets":[{"key":"systemPrompt","tokens":2021569},{"key":"user","tokens":359690},{"key":"skill","tokens":677417},{"key":"toolResult","tokens":71214486},{"key":"toolDef","tokens":6489466},{"key":"injected","tokens":3895015},{"key":"assistant","tokens":81281027},{"key":"output","tokens":1072818}],"billedTokens":208199833,"totals":{"uncachedInputTokens":17168999,"outputTokens":1072818,"cacheReadTokens":189958016,"cacheWriteTokens":0},"requests":841}
+    我方 byModel[0] : {"model":"P6","provider":"proxy","tokens":96383467,"requests":295,"failures":1,"inputTokens":8163277,"outputTokens":458846,"cacheReadTokens":87761344,"cacheWriteTokens":0}（name 省略：llm 元数据未解析到，contract 允许）
+
+  ▸ e9ada59f-5555-4279-a7ac-16cfe742bbf9（用量账本）   我方 0.1.7 数据来源: live 端点
+    项                                 我方             他方             判定    说明
+    context.totalTokens               200,471        200,471        PASS  ±15%（同为字符估算，允许实现差）
+    context.contextWindow             1,000,000      1,000,000      PASS  精确一致或同为 null
+    context.provider                  proxy          proxy          PASS  一致
+    context.model                     P1             P1             PASS  一致
+    composition.billedTokens          179,305,489    179,305,489    PASS  A2 精确一致（provider 精确 usage）
+    composition.systemPrompt          2,075,881      2,075,881      PASS  ±15%（分桶估算允许实现差）
+    composition.user                  7,242,425      7,242,425      PASS  ±15%（分桶估算允许实现差）
+    composition.skill                 1,350,220      1,350,220      PASS  ±15%（分桶估算允许实现差）
+    composition.toolResult            78,424,711     78,424,711     PASS  ±15%（分桶估算允许实现差）
+    composition.toolDef               8,901,429      8,901,429      PASS  ±15%（分桶估算允许实现差）
+    composition.injected              5,274,858      5,274,858      PASS  ±15%（分桶估算允许实现差）
+    composition.assistant             57,310,140     57,310,140     PASS  ±15%（分桶估算允许实现差）
+    composition.output                571,810        571,810        PASS  ±15%（分桶估算允许实现差）
+    子 07c225a7-0 tokens               470,036        470,036        PASS  A1 精确一致（容差 0）
+    子 07c225a7-0 avgFirstTokenMs      28,254         28,254         PASS  ±15%
+    子 07c225a7-0 tokensPerSecond      88             88             PASS  ±15%
+    子 0e78bd3c-9 tokens               992,182        1,004,814      FAIL  A1 精确一致（容差 0）
+    子 0e78bd3c-9 avgFirstTokenMs      40,490         40,490         PASS  ±15%
+    子 0e78bd3c-9 tokensPerSecond      77             77             PASS  ±15%
+    子 3598cd85-1 tokens               1,672,927      1,672,927      PASS  A1 精确一致（容差 0）
+    子 3598cd85-1 avgFirstTokenMs      22,686         22,686         PASS  ±15%
+    子 3598cd85-1 tokensPerSecond      74             74             PASS  ±15%
+    子 3e9c4dbb-f tokens               3,525,288      3,525,288      PASS  A1 精确一致（容差 0）
+    子 3e9c4dbb-f avgFirstTokenMs      22,976         22,976         PASS  ±15%
+    子 3e9c4dbb-f tokensPerSecond      46             46             PASS  ±15%
+    子 5170d545-d tokens               1,507,140      1,551,790      FAIL  A1 精确一致（容差 0）
+    子 5170d545-d avgFirstTokenMs      17,207         17,207         PASS  ±15%
+    子 5170d545-d tokensPerSecond      52             52             PASS  ±15%
+    子 6e6061dc-6 tokens               1,309,136      1,309,136      PASS  A1 精确一致（容差 0）
+    子 6e6061dc-6 avgFirstTokenMs      33,761         33,761         PASS  ±15%
+    子 6e6061dc-6 tokensPerSecond      77             77             PASS  ±15%
+    子 947e303a-2 tokens               632,104        632,104        PASS  A1 精确一致（容差 0）
+    子 947e303a-2 avgFirstTokenMs      38,576         38,576         PASS  ±15%
+    子 947e303a-2 tokensPerSecond      46             46             PASS  ±15%
+    子 9c69cf9e-3 tokens               1,990,735      1,990,735      PASS  A1 精确一致（容差 0）
+    子 9c69cf9e-3 avgFirstTokenMs      15,103         15,103         PASS  ±15%
+    子 9c69cf9e-3 tokensPerSecond      52             52             PASS  ±15%
+    子 b8bc4d37-a tokens               121,190        121,190        PASS  A1 精确一致（容差 0）
+    子 b8bc4d37-a avgFirstTokenMs      35,028         35,028         PASS  ±15%
+    子 b8bc4d37-a tokensPerSecond      69             69             PASS  ±15%
+    子 ea15e1e7-0 tokens               11,669         11,669         PASS  A1 精确一致（容差 0）
+    子 ea15e1e7-0 avgFirstTokenMs      96,848         96,848         PASS  ±15%
+    子 ea15e1e7-0 tokensPerSecond      79             79             PASS  ±15%
+    子 f854cedc-2 tokens               1,438,666      1,438,666      PASS  A1 精确一致（容差 0）
+    子 f854cedc-2 avgFirstTokenMs      15,317         15,317         PASS  ±15%
+    子 f854cedc-2 tokensPerSecond      54             54             PASS  ±15%
+    子 f8e498d1-0 tokens               532,924        532,924        PASS  A1 精确一致（容差 0）
+    子 f8e498d1-0 avgFirstTokenMs      29,131         29,131         PASS  ±15%
+    子 f8e498d1-0 tokensPerSecond      75             75             PASS  ±15%
+    子 0ec524d7-7 tokens               156,063        156,063        PASS  A1 精确一致（容差 0）
+    子 0ec524d7-7 avgFirstTokenMs      18,152         18,152         PASS  ±15%
+    子 0ec524d7-7 tokensPerSecond      87             87             PASS  ±15%
+    我方 context    : {"totalTokens":200471,"contextWindow":1000000,"provider":"proxy","model":"P1","promptTokens":234145,"cacheHitTokens":232192,"cacheMissTokens":1953,"cacheKnown":true,"buckets":[{"key":"systemPrompt","tokens":3716},{"key":"user","tokens":21426},{"key":"skill","tokens":4711},{"key":"toolResult","tokens":84916},{"key":"toolDef","tokens":11916},{"key":"injected","tokens":9674},{"key":"assistant","tokens":64112}]}
+    他方 context    : {"totalTokens":200471,"contextWindow":1000000,"provider":"proxy","model":"P1","cacheHitTokens":232192,"cacheMissTokens":1953,"cacheKnown":true,"promptTokens":234145,"items":[{"key":"conversation:assistant","category":"conversation","kind":"assistant","label":"","count":216,"tokens":64112},{"key":"results:grep","category":"results","label":"grep","count":40,"tokens":27046},{"key":"files:D:\\LiBo\\Files\\DATA\\AI_proj\\dsh_token_usage\\dsh-usage-ledger\\client.js","category":"files","label":"D:\\LiBo\\Files\\DATA\\AI…
+    我方 composition: {"buckets":[{"key":"systemPrompt","tokens":2075881},{"key":"user","tokens":7242425},{"key":"skill","tokens":1350220},{"key":"toolResult","tokens":78424711},{"key":"toolDef","tokens":8901429},{"key":"injected","tokens":5274858},{"key":"assistant","tokens":57310140},{"key":"output","tokens":571810}],"billedTokens":179305489,"totals":{"tokens":179305489,"inputTokens":16640388,"outputTokens":571810,"cacheReadTokens":162093291,"cacheWriteTokens":0,"reasoningTokens":0},"requests":933}
+    他方 composition: {"buckets":[{"key":"systemPrompt","tokens":2075881},{"key":"user","tokens":7242425},{"key":"skill","tokens":1350220},{"key":"toolResult","tokens":78424711},{"key":"toolDef","tokens":8901429},{"key":"injected","tokens":5274858},{"key":"assistant","tokens":57310140},{"key":"output","tokens":571810}],"billedTokens":179305489,"totals":{"uncachedInputTokens":16640388,"outputTokens":571810,"cacheReadTokens":162093291,"cacheWriteTokens":0},"requests":933}
+    我方 byModel[0] : {"model":"P1","provider":"proxy","tokens":178454374,"requests":1232,"failures":303,"inputTokens":16646603,"outputTokens":622000,"cacheReadTokens":161185771,"cacheWriteTokens":0,"name":"kimi-k3"}
+
+  ▸ 777c8a84-6166-422b-8d55-a45924f5cf37（详细分析该工程）   我方 0.1.7 数据来源: live 端点
+    项                                 我方             他方             判定    说明
+    context.totalTokens               328,923        328,923        PASS  ±15%（同为字符估算，允许实现差）
+    context.contextWindow             1,000,000      1,000,000      PASS  精确一致或同为 null
+    context.provider                  proxy          proxy          PASS  一致
+    context.model                     P1             P1             PASS  一致
+    composition.billedTokens          71,394,738     71,394,738     PASS  A2 精确一致（provider 精确 usage）
+    composition.systemPrompt          1,123,622      1,123,622      PASS  ±15%（分桶估算允许实现差）
+    composition.user                  346,244        346,244        PASS  ±15%（分桶估算允许实现差）
+    composition.skill                 255,426        255,426        PASS  ±15%（分桶估算允许实现差）
+    composition.toolResult            29,852,294     29,852,294     PASS  ±15%（分桶估算允许实现差）
+    composition.toolDef               3,259,718      3,259,718      PASS  ±15%（分桶估算允许实现差）
+    composition.injected              6,571,084      6,571,084      PASS  ±15%（分桶估算允许实现差）
+    composition.assistant             18,976,686     18,976,686     PASS  ±15%（分桶估算允许实现差）
+    composition.output                611,125        611,125        PASS  ±15%（分桶估算允许实现差）
+    子 41689d9e-f tokens               7,475,818      3,737,909      FAIL  A1 精确一致（容差 0）
+    子 41689d9e-f avgFirstTokenMs      22,637         22,637         PASS  ±15%
+    子 41689d9e-f tokensPerSecond      233            233            PASS  ±15%
+    子 4dee6432-2 tokens               7,975,748      3,987,874      FAIL  A1 精确一致（容差 0）
+    子 4dee6432-2 avgFirstTokenMs      31,979         31,979         PASS  ±15%
+    子 4dee6432-2 tokensPerSecond      232            232            PASS  ±15%
+    子 8cfbc58f-a tokens               4,371,926      2,185,963      FAIL  A1 精确一致（容差 0）
+    子 8cfbc58f-a avgFirstTokenMs      27,448         27,448         PASS  ±15%
+    子 8cfbc58f-a tokensPerSecond      208            208            PASS  ±15%
+    我方 context    : {"totalTokens":328923,"contextWindow":1000000,"provider":"proxy","model":"P1","promptTokens":369339,"cacheHitTokens":367616,"cacheMissTokens":1723,"cacheKnown":true,"buckets":[{"key":"systemPrompt","tokens":2938},{"key":"user","tokens":4038},{"key":"skill","tokens":460},{"key":"toolResult","tokens":114963},{"key":"toolDef","tokens":7302},{"key":"injected","tokens":20198},{"key":"assistant","tokens":179024}]}
+    他方 context    : {"totalTokens":328923,"contextWindow":1000000,"provider":"proxy","model":"P1","cacheHitTokens":367616,"cacheMissTokens":1723,"cacheKnown":true,"promptTokens":369339,"items":[{"key":"conversation:assistant","category":"conversation","kind":"assistant","label":"","count":142,"tokens":179024},{"key":"results:pwsh","category":"results","label":"pwsh","count":109,"tokens":40303},{"key":"files:D:\\THA6412\\01_Branch\\02_FuSa\\02_code\\THA6XXX_MC_AS440\\Mcal\\Code\\Spi\\src\\Spi.c","category":"files","label":"D:\\THA6412\…
+    我方 composition: {"buckets":[{"key":"systemPrompt","tokens":1123622},{"key":"user","tokens":346244},{"key":"skill","tokens":255426},{"key":"toolResult","tokens":29852294},{"key":"toolDef","tokens":3259718},{"key":"injected","tokens":6571084},{"key":"assistant","tokens":18976686},{"key":"output","tokens":611125}],"billedTokens":71394738,"totals":{"tokens":71394738,"inputTokens":6372660,"outputTokens":611125,"cacheReadTokens":64410953,"cacheWriteTokens":0,"reasoningTokens":0},"requests":529}
+    他方 composition: {"buckets":[{"key":"systemPrompt","tokens":1123622},{"key":"user","tokens":346244},{"key":"skill","tokens":255426},{"key":"toolResult","tokens":29852294},{"key":"toolDef","tokens":3259718},{"key":"injected","tokens":6571084},{"key":"assistant","tokens":18976686},{"key":"output","tokens":611125}],"billedTokens":71394738,"totals":{"uncachedInputTokens":6372660,"outputTokens":611125,"cacheReadTokens":64410953,"cacheWriteTokens":0},"requests":529}
+    我方 byModel[0] : {"model":"P1","provider":"proxy","tokens":19350098,"requests":64,"failures":0,"inputTokens":2839649,"outputTokens":99752,"cacheReadTokens":16410697,"cacheWriteTokens":0,"name":"kimi-k3"}
+
+  ▸ db8b0e0f-23fa-4dfb-bf22-19e8b8a0df72（架构文档修改）   我方 0.1.7 数据来源: live 端点
+    项                                 我方             他方             判定    说明
+    context.totalTokens               295,945        295,945        PASS  ±15%（同为字符估算，允许实现差）
+    context.contextWindow             1,000,000      1,000,000      PASS  精确一致或同为 null
+    context.provider                  proxy          proxy          PASS  一致
+    context.model                     P2             P2             PASS  一致
+    composition.billedTokens          86,974,484     86,974,484     PASS  A2 精确一致（provider 精确 usage）
+    composition.systemPrompt          1,180,004      1,180,004      PASS  ±15%（分桶估算允许实现差）
+    composition.user                  275,600        275,600        PASS  ±15%（分桶估算允许实现差）
+    composition.skill                 419,940        419,940        PASS  ±15%（分桶估算允许实现差）
+    composition.toolResult            29,549,897     29,549,897     PASS  ±15%（分桶估算允许实现差）
+    composition.toolDef               5,237,102      5,237,102      PASS  ±15%（分桶估算允许实现差）
+    composition.injected              2,400,694      2,400,694      PASS  ±15%（分桶估算允许实现差）
+    composition.assistant             33,864,192     33,864,192     PASS  ±15%（分桶估算允许实现差）
+    composition.output                865,998        865,998        PASS  ±15%（分桶估算允许实现差）
+    子 dd617757-b tokens               5,753,955      5,753,955      PASS  A1 精确一致（容差 0）
+    子 dd617757-b avgFirstTokenMs      4,316          4,316          PASS  ±15%
+    子 dd617757-b tokensPerSecond      49             49             PASS  ±15%
+    子 59afd24d-6 tokens               19,777,665     19,777,665     PASS  A1 精确一致（容差 0）
+    子 59afd24d-6 avgFirstTokenMs      11,301         11,301         PASS  ±15%
+    子 59afd24d-6 tokensPerSecond      54             54             PASS  ±15%
+    子 d90de402-0 tokens               8,946,097      9,101,120      FAIL  A1 精确一致（容差 0）
+    子 d90de402-0 avgFirstTokenMs      3,978          3,978          PASS  ±15%
+    子 d90de402-0 tokensPerSecond      56             56             PASS  ±15%
+    我方 context    : {"totalTokens":295945,"contextWindow":1000000,"provider":"proxy","model":"P2","promptTokens":371562,"cacheHitTokens":367936,"cacheMissTokens":3626,"cacheKnown":true,"buckets":[{"key":"systemPrompt","tokens":1445},{"key":"user","tokens":200},{"key":"skill","tokens":1630},{"key":"toolResult","tokens":137508},{"key":"toolDef","tokens":11240},{"key":"injected","tokens":32876},{"key":"assistant","tokens":111046}]}
+    他方 context    : {"totalTokens":295945,"contextWindow":1000000,"provider":"proxy","model":"P2","cacheHitTokens":367936,"cacheMissTokens":3626,"cacheKnown":true,"promptTokens":371562,"items":[{"key":"conversation:assistant","category":"conversation","kind":"assistant","label":"","count":52,"tokens":111046},{"key":"results:pwsh","category":"results","label":"pwsh","count":17,"tokens":39773},{"key":"files:D:\\THA6412\\01_Branch\\02_FuSa\\05_Patch\\PackagePrepare\\THA6XXX_MC_AS440\\SDK\\gtm\\common\\gtm_register.h","category":"files","…
+    我方 composition: {"buckets":[{"key":"systemPrompt","tokens":1180004},{"key":"user","tokens":275600},{"key":"skill","tokens":419940},{"key":"toolResult","tokens":29549897},{"key":"toolDef","tokens":5237102},{"key":"injected","tokens":2400694},{"key":"assistant","tokens":33864192},{"key":"output","tokens":865998}],"billedTokens":86974484,"totals":{"tokens":86974484,"inputTokens":9361222,"outputTokens":865998,"cacheReadTokens":76747264,"cacheWriteTokens":0,"reasoningTokens":0},"requests":515}
+    他方 composition: {"buckets":[{"key":"systemPrompt","tokens":1180004},{"key":"user","tokens":275600},{"key":"skill","tokens":419940},{"key":"toolResult","tokens":29549897},{"key":"toolDef","tokens":5237102},{"key":"injected","tokens":2400694},{"key":"assistant","tokens":33864192},{"key":"output","tokens":865998}],"billedTokens":86974484,"totals":{"uncachedInputTokens":9361222,"outputTokens":865998,"cacheReadTokens":76747264,"cacheWriteTokens":0},"requests":515}
+    我方 byModel[0] : {"model":"P2","provider":"proxy","tokens":76641906,"requests":389,"failures":6,"inputTokens":7994577,"outputTokens":784545,"cacheReadTokens":67862784,"cacheWriteTokens":0,"name":"glm-5.3"}
+
+  对照汇总：PASS 105 · FAIL 7 · INFO 0 · 端点错误 0
+      · bbf11a8f-0 子 ba838400-f tokens: 我方 115,189,948 vs 他方 116,318,089（A1 精确一致（容差 0））
+      · e9ada59f-5 子 0e78bd3c-9 tokens: 我方 992,182 vs 他方 1,004,814（A1 精确一致（容差 0））
+      · e9ada59f-5 子 5170d545-d tokens: 我方 1,507,140 vs 他方 1,551,790（A1 精确一致（容差 0））
+      · 777c8a84-6 子 41689d9e-f tokens: 我方 7,475,818 vs 他方 3,737,909（A1 精确一致（容差 0））
+      · 777c8a84-6 子 4dee6432-2 tokens: 我方 7,975,748 vs 他方 3,987,874（A1 精确一致（容差 0））
+      · 777c8a84-6 子 8cfbc58f-a tokens: 我方 4,371,926 vs 他方 2,185,963（A1 精确一致（容差 0））
+      · db8b0e0f-2 子 d90de402-0 tokens: 我方 8,946,097 vs 他方 9,101,120（A1 精确一致（容差 0））
+
+── 判据（报告模式列出，不影响退出码）
+  [S1] 非活会话四桶 |Δ| ≤ 0.5% 或 ≤ 10K  FAIL  — 112 项违反
+      · session-02c869df-463c-4cb8-b51a-9b02f4e0806a [tokens] Δ+140,757,720（49.78% of 282,771,438）
+      · session-02c869df-463c-4cb8-b51a-9b02f4e0806a [input] Δ+16,470,934（49.98% of 32,956,934）
+      · session-02c869df-463c-4cb8-b51a-9b02f4e0806a [output] Δ+608,771（49.91% of 1,219,690）
+      · session-02c869df-463c-4cb8-b51a-9b02f4e0806a [cacheRead] Δ+123,678,015（49.75% of 248,594,814）
+      · session-bbf11a8f-04b3-4f82-8ec5-ae5f5c6c1c8d [tokens] Δ-1,361,750（0.65% of 208,199,833）
+      · session-bbf11a8f-04b3-4f82-8ec5-ae5f5c6c1c8d [cacheRead] Δ-1,338,496（0.70% of 189,958,016）
+      · session-ba838400-fbfb-43fd-84fa-fff0dc8aaee1 [tokens] Δ-1,128,141（0.97% of 116,318,089）
+      · session-ba838400-fbfb-43fd-84fa-fff0dc8aaee1 [cacheRead] Δ-1,110,080（1.06% of 104,418,816）
+      · session-777c8a84-6166-422b-8d55-a45924f5cf37 [tokens] Δ+36,588,812（33.88% of 107,983,550）
+      · session-777c8a84-6166-422b-8d55-a45924f5cf37 [input] Δ+2,534,679（28.46% of 8,907,339）
+      · session-777c8a84-6166-422b-8d55-a45924f5cf37 [output] Δ+330,869（35.12% of 941,994）
+      · session-777c8a84-6166-422b-8d55-a45924f5cf37 [cacheRead] Δ+33,723,264（34.36% of 98,134,217）
+      · session-8c0656bf-9d0d-4842-8414-169362e40688 [tokens] Δ+14,205,071（13.44% of 105,655,638）
+      · session-8c0656bf-9d0d-4842-8414-169362e40688 [input] Δ+915,518（13.99% of 6,542,807）
+      · session-8c0656bf-9d0d-4842-8414-169362e40688 [output] Δ+162,897（19.38% of 840,703）
+      · session-8c0656bf-9d0d-4842-8414-169362e40688 [cacheRead] Δ+13,126,656（13.36% of 98,272,128）
+      · session-3832f91d-e82d-473f-a950-13b4bc7cb649 [tokens] Δ+16,915,711（18.27% of 92,562,235）
+      · session-3832f91d-e82d-473f-a950-13b4bc7cb649 [input] Δ+2,402,692（18.32% of 13,114,268）
+      · session-3832f91d-e82d-473f-a950-13b4bc7cb649 [output] Δ+181,765（25.73% of 706,493）
+      · session-3832f91d-e82d-473f-a950-13b4bc7cb649 [cacheRead] Δ+14,331,254（18.20% of 78,741,474）
+      · session-33cedff2-fb80-47f3-9f8d-7ddb9751b4a9 [tokens] Δ+40,708,624（44.23% of 92,032,623）
+      · session-33cedff2-fb80-47f3-9f8d-7ddb9751b4a9 [input] Δ+1,323,520（38.11% of 3,473,082）
+      · session-33cedff2-fb80-47f3-9f8d-7ddb9751b4a9 [output] Δ+167,149（38.20% of 437,615）
+      · session-33cedff2-fb80-47f3-9f8d-7ddb9751b4a9 [cacheRead] Δ+39,217,955（44.50% of 88,121,926）
+      · session-db8b0e0f-23fa-4dfb-bf22-19e8b8a0df72 [tokens] Δ-508,603（0.58% of 86,974,484）
+      · session-db8b0e0f-23fa-4dfb-bf22-19e8b8a0df72 [cacheRead] Δ-494,272（0.64% of 76,747,264）
+      · session-3b94c33b-bc4d-43de-a793-f3575c627989 [tokens] Δ+32,458,878（39.12% of 82,966,737）
+      · session-3b94c33b-bc4d-43de-a793-f3575c627989 [input] Δ+3,850,069（40.72% of 9,454,823）
+      · session-3b94c33b-bc4d-43de-a793-f3575c627989 [output] Δ+200,956（38.83% of 517,522）
+      · session-3b94c33b-bc4d-43de-a793-f3575c627989 [cacheRead] Δ+28,407,853（38.92% of 72,994,392）
+      · session-1069f72e-a182-40d9-a4d7-9600f51586ff [tokens] Δ+5,503,932（7.53% of 73,056,919）
+      · session-1069f72e-a182-40d9-a4d7-9600f51586ff [input] Δ+268,097（3.11% of 8,619,966）
+      · session-1069f72e-a182-40d9-a4d7-9600f51586ff [output] Δ+57,339（16.81% of 341,005）
+      · session-1069f72e-a182-40d9-a4d7-9600f51586ff [cacheRead] Δ+5,178,496（8.08% of 64,095,948）
+      · session-b87c4e6a-349f-4e75-9fee-761a211a04b5 [tokens] Δ-319,594（0.56% of 57,481,157）
+      · session-b87c4e6a-349f-4e75-9fee-761a211a04b5 [cacheRead] Δ-317,440（0.57% of 55,592,128）
+      · session-28365027-3e18-4bc3-b0bf-119a24671fe2 [tokens] Δ+16,370,518（34.74% of 47,116,877）
+      · session-28365027-3e18-4bc3-b0bf-119a24671fe2 [input] Δ+954,476（34.43% of 2,771,978）
+      · session-28365027-3e18-4bc3-b0bf-119a24671fe2 [output] Δ+147,178（42.28% of 348,126）
+      · session-28365027-3e18-4bc3-b0bf-119a24671fe2 [cacheRead] Δ+15,268,864（34.70% of 43,996,773）
+      · session-2621d5c8-a6dc-4954-bee5-0a93cd01f268 [tokens] Δ+12,795,204（35.52% of 36,023,036）
+      · session-2621d5c8-a6dc-4954-bee5-0a93cd01f268 [input] Δ+1,584,823（38.98% of 4,065,547）
+      · session-2621d5c8-a6dc-4954-bee5-0a93cd01f268 [output] Δ+84,558（43.10% of 196,211）
+      · session-2621d5c8-a6dc-4954-bee5-0a93cd01f268 [cacheRead] Δ+11,125,823（35.03% of 31,761,278）
+      · session-215de1f9-3d6a-41e0-abb6-11455d46097c [tokens] Δ+15,580,895（50.00% of 31,161,790）
+      · session-215de1f9-3d6a-41e0-abb6-11455d46097c [input] Δ+2,937,918（50.00% of 5,875,836）
+      · session-215de1f9-3d6a-41e0-abb6-11455d46097c [output] Δ+39,590（50.00% of 79,180）
+      · session-215de1f9-3d6a-41e0-abb6-11455d46097c [cacheRead] Δ+12,603,387（50.00% of 25,206,774）
+      · session-caab691e-adc3-4811-815d-b80790b464e2 [tokens] Δ+1,218,721（4.46% of 27,325,263）
+      · session-caab691e-adc3-4811-815d-b80790b464e2 [input] Δ+269,106（7.03% of 3,825,974）
+      · session-caab691e-adc3-4811-815d-b80790b464e2 [output] Δ+16,495（8.64% of 191,007）
+      · session-caab691e-adc3-4811-815d-b80790b464e2 [cacheRead] Δ+933,120（4.00% of 23,308,282）
+      · 100b7430-cbd8-4fe1-823e-5ba7604d9650 [tokens] Δ+11,073,263（50.00% of 22,146,526）
+      · 100b7430-cbd8-4fe1-823e-5ba7604d9650 [input] Δ+258,735（50.00% of 517,470）
+      · 100b7430-cbd8-4fe1-823e-5ba7604d9650 [output] Δ+100,544（50.00% of 201,088）
+      · 100b7430-cbd8-4fe1-823e-5ba7604d9650 [cacheRead] Δ+10,713,984（50.00% of 21,427,968）
+      · session-3240bda7-e792-402a-a2d3-9f24d43973ce [tokens] Δ+8,363,153（50.00% of 16,726,306）
+      · session-3240bda7-e792-402a-a2d3-9f24d43973ce [input] Δ+503,888（50.00% of 1,007,776）
+      · session-3240bda7-e792-402a-a2d3-9f24d43973ce [output] Δ+75,875（50.00% of 151,750）
+      · session-3240bda7-e792-402a-a2d3-9f24d43973ce [cacheRead] Δ+7,783,390（50.00% of 15,566,780）
+      · session-f2d05e25-9bb2-48f9-8908-3dbd5ecd03ef [tokens] Δ+5,198,713（44.01% of 11,812,752）
+      · session-f2d05e25-9bb2-48f9-8908-3dbd5ecd03ef [input] Δ+422,681（38.70% of 1,092,059）
+      · session-f2d05e25-9bb2-48f9-8908-3dbd5ecd03ef [output] Δ+71,204（43.65% of 163,133）
+      · session-f2d05e25-9bb2-48f9-8908-3dbd5ecd03ef [cacheRead] Δ+4,704,828（44.56% of 10,557,560）
+      · d90de402-0153-428b-a080-2bb73bce1492 [tokens] Δ-155,023（1.70% of 9,101,120）
+      · d90de402-0153-428b-a080-2bb73bce1492 [cacheRead] Δ-154,304（1.85% of 8,330,496）
+      · 4dee6432-2dea-4dda-9ab3-baeeae8b4d77 [tokens] Δ+3,987,874（50.00% of 7,975,748）
+      · 4dee6432-2dea-4dda-9ab3-baeeae8b4d77 [input] Δ+173,028（50.00% of 346,056）
+      · 4dee6432-2dea-4dda-9ab3-baeeae8b4d77 [output] Δ+51,518（50.00% of 103,036）
+      · 4dee6432-2dea-4dda-9ab3-baeeae8b4d77 [cacheRead] Δ+3,763,328（50.00% of 7,526,656）
+      · 41689d9e-fd45-445c-a5b5-b659eef02c27 [tokens] Δ+3,737,909（50.00% of 7,475,818）
+      · 41689d9e-fd45-445c-a5b5-b659eef02c27 [input] Δ+149,927（50.00% of 299,854）
+      · 41689d9e-fd45-445c-a5b5-b659eef02c27 [output] Δ+41,358（50.00% of 82,716）
+      · 41689d9e-fd45-445c-a5b5-b659eef02c27 [cacheRead] Δ+3,546,624（50.00% of 7,093,248）
+      · da7d7b3e-ac7d-4e9b-affe-c7852f450907 [tokens] Δ+2,631,826（50.00% of 5,263,652）
+      · da7d7b3e-ac7d-4e9b-affe-c7852f450907 [input] Δ+146,264（50.00% of 292,528）
+      · da7d7b3e-ac7d-4e9b-affe-c7852f450907 [output] Δ+15,761（50.00% of 31,522）
+      · da7d7b3e-ac7d-4e9b-affe-c7852f450907 [cacheRead] Δ+2,469,801（50.00% of 4,939,602）
+      · e48b8aea-37de-495a-b1db-cb6b13652ffd [tokens] Δ+2,517,515（50.00% of 5,035,030）
+      · e48b8aea-37de-495a-b1db-cb6b13652ffd [input] Δ+136,933（50.00% of 273,866）
+      · e48b8aea-37de-495a-b1db-cb6b13652ffd [output] Δ+32,550（50.00% of 65,100）
+      · e48b8aea-37de-495a-b1db-cb6b13652ffd [cacheRead] Δ+2,348,032（50.00% of 4,696,064）
+      · 8cfbc58f-a321-479f-b56a-a5fee77c9043 [tokens] Δ+2,185,963（50.00% of 4,371,926）
+      · 8cfbc58f-a321-479f-b56a-a5fee77c9043 [input] Δ+109,409（50.00% of 218,818）
+      · 8cfbc58f-a321-479f-b56a-a5fee77c9043 [output] Δ+37,002（50.00% of 74,004）
+      · 8cfbc58f-a321-479f-b56a-a5fee77c9043 [cacheRead] Δ+2,039,552（50.00% of 4,079,104）
+      · session-066f0774-4f07-4fca-9259-8d5985e59e89 [tokens] Δ+2,184,869（50.00% of 4,369,738）
+      · session-066f0774-4f07-4fca-9259-8d5985e59e89 [input] Δ+194,962（50.00% of 389,924）
+      · session-066f0774-4f07-4fca-9259-8d5985e59e89 [output] Δ+43,667（50.00% of 87,334）
+      · session-066f0774-4f07-4fca-9259-8d5985e59e89 [cacheRead] Δ+1,946,240（50.00% of 3,892,480）
+      · session-b108dd58-cd3b-4776-bb73-a88b01830eee [tokens] Δ+1,904,263（50.00% of 3,808,526）
+      · session-b108dd58-cd3b-4776-bb73-a88b01830eee [input] Δ+158,905（50.00% of 317,810）
+      · session-b108dd58-cd3b-4776-bb73-a88b01830eee [output] Δ+29,390（50.00% of 58,780）
+      · session-b108dd58-cd3b-4776-bb73-a88b01830eee [cacheRead] Δ+1,715,968（50.00% of 3,431,936）
+      · bb219b78-50d1-4b3c-ac96-56461861ad83 [tokens] Δ+1,688,211（50.00% of 3,376,422）
+      · bb219b78-50d1-4b3c-ac96-56461861ad83 [input] Δ+95,213（50.00% of 190,426）
+      · bb219b78-50d1-4b3c-ac96-56461861ad83 [output] Δ+28,070（50.00% of 56,140）
+      · bb219b78-50d1-4b3c-ac96-56461861ad83 [cacheRead] Δ+1,564,928（50.00% of 3,129,856）
+      · 2a9fc210-db46-4460-b9cc-fca35045f85f [tokens] Δ+1,574,525（50.00% of 3,149,050）
+      · 2a9fc210-db46-4460-b9cc-fca35045f85f [input] Δ+79,494（50.00% of 158,988）
+      · 2a9fc210-db46-4460-b9cc-fca35045f85f [output] Δ+16,573（50.00% of 33,146）
+      · 2a9fc210-db46-4460-b9cc-fca35045f85f [cacheRead] Δ+1,478,458（50.00% of 2,956,916）
+      · 6e7f7bec-d6b0-4a28-9e48-3b8cd48acce3 [tokens] Δ+892,384（50.00% of 1,784,768）
+      · 6e7f7bec-d6b0-4a28-9e48-3b8cd48acce3 [input] Δ+60,446（50.00% of 120,892）
+      · 6e7f7bec-d6b0-4a28-9e48-3b8cd48acce3 [cacheRead] Δ+823,782（50.00% of 1,647,564）
+      · 5170d545-db59-4d3f-aa17-55709027bba4 [tokens] Δ-44,650（2.88% of 1,551,790）
+      · 5170d545-db59-4d3f-aa17-55709027bba4 [cacheRead] Δ-36,608（2.50% of 1,461,760）
+      · 0e78bd3c-9221-4362-96e9-36242047f44f [tokens] Δ-12,632（1.26% of 1,004,814）
+      · 0e78bd3c-9221-4362-96e9-36242047f44f [cacheRead] Δ-11,008（1.20% of 920,064）
+      · 2588592f-0620-4ee1-bd22-697c9a01425c [tokens] Δ+262,094（50.00% of 524,188）
+      · 2588592f-0620-4ee1-bd22-697c9a01425c [input] Δ+31,191（50.00% of 62,382）
+      · 2588592f-0620-4ee1-bd22-697c9a01425c [cacheRead] Δ+223,427（50.00% of 446,854）
+  [S2] task-11 children[]/byModel 四桶联调  PASS
+  [S3] 0.1.7 A1/A2 与 ±15% 容差对照  FAIL — 7 项超容差（null 跳过项未计）
+
+── 说明
+  · 我方与他方 totals 均为“本会话+全部后代”口径（我方 BFS、他方 self+compaction+subagents），可直接对比。
+  · 活会话（ACT）：我方 live 计数、他方按需读日志，实时尾巴存在时序差，只列出不判（30 分钟窗口）。
+  · 他方 retry 计数口径差、30 天明细窗口外不完整为已知可解释差异（见各差异行归因线索）。
+  · composition 的 billed 来自 provider 精确 usage（A2 精确判）；分桶与 context.totalTokens 是字符估算（±15% 判）。
+
+报告模式完成（exit 0）
