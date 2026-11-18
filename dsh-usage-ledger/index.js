@@ -186,7 +186,15 @@ export function apply(ctx, rawConfig = {}) {
       //    ledger; their seq > liveHighSeq@provider ⇒ ≥ boundary, so the
       //    rescan's live-owned skip ([boundary, ∞)) leaves them to the live
       //    count — exactly once.
+      // Live-span re-accounting (2026-11-18, caab691e hole): events observed
+      // live BEFORE the reset job ran had their KV contributions wiped, and
+      // the replay prefix cannot re-land any of them that still sat in the
+      // host's drain buffer at replay time. Snapshot the live folds INSIDE
+      // the reset job (pre-wipe, queue-adjacent — no event slips between),
+      // then re-record after the wipe; delta anchors dedupe vs the replay.
+      let liveSnapshot = null
       await store.reset(() => {
+        liveSnapshot = collector.snapshotLiveFacts()
         const boundaries = new Map()
         for (const handle of ctx.sessions.list()) {
           const seq = handle.seq
@@ -208,6 +216,13 @@ export function apply(ctx, rawConfig = {}) {
         }
         return boundaries
       })
+      // Re-land the wiped live span before the rescan's replays enqueue;
+      // both directions are anchor-idempotent, order is irrelevant.
+      if (liveSnapshot !== null) {
+        for (const fact of liveSnapshot.requests) store.recordRequest(fact)
+        for (const fact of liveSnapshot.tools) store.recordToolCall(fact)
+        for (const marker of liveSnapshot.turns) store.recordTurn(marker)
+      }
       await rescan()
     })().finally(() => {
       resetInFlight = null

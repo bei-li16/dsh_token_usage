@@ -56,6 +56,7 @@
  */
 
 import { RequestFold } from './fold.js'
+import { normalizeRequestFact, normalizeToolFact } from '../contract.js'
 
 /** Batch size for markBackfilled cursor writes. */
 const MARK_BATCH = 32
@@ -240,6 +241,20 @@ export class LedgerCollector {
     const observed = this.liveBoundaries.has(sid)
     this.folds.delete(sid)
     if (!observed) this.disposeCatchUp(sid, liveParentOf(session))
+  }
+
+  /** Snapshot every live fold's folded facts WITHOUT mutating fold state.
+   *  Used by /reset: the wipe clears KV contributions that live-observed
+   *  events landed pre-reset; re-recording this snapshot afterwards re-lands
+   *  them (delta anchors make the overlap with the log replay a no-op). */
+  snapshotLiveFacts() {
+    const out = { requests: [], tools: [], turns: [], metas: [] }
+    for (const fold of this.folds.values()) {
+      for (const rec of fold.requests.values()) out.requests.push(normalizeRequestFact(rec))
+      for (const rec of fold.tools.values()) out.tools.push(normalizeToolFact(rec))
+      for (const marker of fold.turns) out.turns.push(marker)
+    }
+    return out
   }
 
   /** Lazily create the per-session live fold, seeded with route and kind. */

@@ -421,6 +421,22 @@ async function main() {
   ok(nIds.includes('n1:1:1:0'), 'idle+boundary: prefix replayed')
   ok(nIds.includes('n1:2:1:0'), 'idle session ignores stale boundary — tail replayed')
 
+  // ── snapshotLiveFacts (2026-11-18): reset 重记账源——只读快照实时 fold，
+  //    且不干扰后续折叠（caab691e 排水窗口丢账修复的配套）──
+  const storeS = mockStore()
+  const collectorS = new LedgerCollector({ store: storeS, concurrency: 1 })
+  const handlersS = new Map()
+  collectorS.start({ on(name, fn) { handlersS.set(name, fn); return () => handlersS.delete(name) } })
+  const sHandle = { id: 'sn1', header: {}, requestContext: () => ({ provider: 'p', model: 'm' }) }
+  handlersS.get('session/event')(sHandle, ev(0, T0, 'step/start', { turn: 1, step: 1 }))
+  handlersS.get('session/event')(sHandle, ev(1, T0 + 100, 'assistant/message', { turn: 1, step: 1, message: {}, usage: { inputTokens: 7, outputTokens: 3 } }))
+  const snap = collectorS.snapshotLiveFacts()
+  eq(snap.requests.length, 1, 'snapshot: one request fact')
+  eq(snap.requests[0].computedTotal, 10, 'snapshot: fact tokens intact')
+  handlersS.get('session/event')(sHandle, ev(2, T0 + 200, 'step/start', { turn: 1, step: 2 }))
+  handlersS.get('session/event')(sHandle, ev(3, T0 + 300, 'assistant/message', { turn: 1, step: 2, message: {}, usage: { inputTokens: 1, outputTokens: 1 } }))
+  eq(collectorS.snapshotLiveFacts().requests.length, 2, 'snapshot is read-only: fold keeps accumulating')
+
   // ── fix regression: same-activation live boundary closes the KV write race ──
   const storeE = mockStore()
   const collectorE = new LedgerCollector({ store: storeE, concurrency: 1 })
