@@ -197,6 +197,9 @@ window.__ModuleLoader__.load({
 .ul-secTitle{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary)}
 .ul-count{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:18px;padding:0 7px;border-radius:9px;background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-tertiary);font-size:11px;font-weight:400;font-variant-numeric:tabular-nums}
 .ul-hit{color:var(--dsw-alias-state-success-primary,var(--dsw-alias-label-primary))}
+/* 命中率分档配色对齐 token-total：≥80 绿 / ≥50 黄 / <50 红 / null 灰。 */
+.ul-hitWarn{color:var(--dsw-alias-state-warn-label,var(--dsw-alias-label-secondary))}
+.ul-hitBad{color:var(--dsw-alias-state-error-primary,var(--dsw-alias-label-secondary))}
 .ul-mdNameCell{display:flex;align-items:center;gap:6px;min-width:0}
 .ul-mdLogo{width:16px;height:16px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;line-height:1;color:var(--dsw-alias-bg-base);background:color-mix(in srgb,var(--dsw-tone-1) 65%,transparent);flex:0 0 auto}
 .ul-cards{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
@@ -1347,6 +1350,14 @@ body[data-ds-dark-theme] .ul-tone-output{--ul-bucket:#ff85c0}
         h(StatsCard, { composition }))
     }
 
+    // 命中率单元格：分档配色对齐 token-total（≥80 绿 / ≥50 黄 / <50 红 /
+    // null 灰）。表格列传入 className 保留数字对齐样式。
+    const hitClassOf = (rate) => (rate === null ? 'ul-cellDim' : rate >= 80 ? 'ul-hit' : rate >= 50 ? 'ul-hitWarn' : 'ul-hitBad')
+    function HitCell({ rate, className = '' }) {
+      return h('span', { className: `${className} ${hitClassOf(rate)}`.trim() },
+        rate === null ? t('na') : fmtPct(rate))
+    }
+
     function SessionUsageView({ sessionId }) {
       const { data, error, loading, refresh, updatedAt } = useSessionUsage(sessionId)
       // Freshness header: the view polls continuously, so it always shows a
@@ -1379,7 +1390,6 @@ body[data-ds-dark-theme] .ul-tone-output{--ul-bucket:#ff85c0}
       // byModel needs SQLite detail, so it is empty (banner explains).
       const children = d.children ?? []
       const byModel = d.degraded ? [] : d.byModel ?? []
-      const tools = d.degraded ? [] : d.tools
       const hitOf = (r) => hitRateOf(r.inputTokens, r.cacheReadTokens, r.cacheWriteTokens)
       return h('div', { className: 'ul-session' },
         h('style', null, CSS),
@@ -1412,7 +1422,7 @@ body[data-ds-dark-theme] .ul-tone-output{--ul-bucket:#ff85c0}
               }),
               h(Card, {
                 label: t('cacheHit'), icon: cardIcon(CARD_ICON_D.hit),
-                value: hit === null ? t('na') : h('span', { className: 'ul-hit' }, fmtPct(hit)),
+                value: h(HitCell, { rate: hit }),
                 sub: hit === null ? null : `${fmtTok(d.totals.cacheReadTokens)} ${t('svCacheHitShort')}`,
               }),
               h(Card, {
@@ -1436,7 +1446,7 @@ body[data-ds-dark-theme] .ul-tone-output{--ul-bucket:#ff85c0}
                       h('span', { className: 'ul-cellName', title: c.name || c.id }, c.name || c.id),
                       h('span', { className: 'ul-cellNum2' }, fmtInt(c.requests)),
                       h('span', { className: 'ul-cellNum2' }, fmtTok(c.tokens)),
-                      h('span', { className: 'ul-cellNum2 ul-hit' }, hitOf(c) === null ? t('na') : fmtPct(hitOf(c))),
+                      h(HitCell, { className: 'ul-cellNum2', rate: hitOf(c) }),
                       h('span', { className: 'ul-cellNum2' }, fmtSec(c.avgFirstTokenMs)),
                       h('span', { className: 'ul-cellNum2' }, c.tokensPerSecond == null ? t('na') : fmtSpeed(c.tokensPerSecond)),
                       h('span', null, t(KIND_LABEL[c.kind] || 'kindMain')))))),
@@ -1473,16 +1483,10 @@ body[data-ds-dark-theme] .ul-tone-output{--ul-bucket:#ff85c0}
                         h('span', { className: 'ul-cellNum2' }, fmtTok(m.outputTokens)),
                         h('span', { className: 'ul-cellNum2' }, fmtTok(m.cacheReadTokens)),
                         h('span', { className: 'ul-cellNum2' }, fmtTok(m.cacheWriteTokens)),
-                        h('span', { className: 'ul-cellNum2 ul-hit' }, hitOf(m) === null ? t('na') : fmtPct(hitOf(m))))
+                        h(HitCell, { className: 'ul-cellNum2', rate: hitOf(m) }))
                     })))),
-          // the two live cards between the tables and the tool chips
-          h(UsageCards, { context: d.context ?? null, composition: d.composition ?? null }),
-          // tool chips (our extra; token-total has no equivalent)
-          tools.length === 0 ? null : h('section', { className: 'ul-sec' },
-            h('div', { className: 'ul-secTitle' }, t('svTools')),
-            h('div', { className: 'ul-toolMini' },
-              tools.map((tool) => h('span', { key: tool.name, className: 'ul-chip' },
-                `${tool.name} · ${fmtInt(tool.calls)}${tool.failures > 0 ? ` (${fmtInt(tool.failures)}✗)` : ''}`))))))
+          // the two live cards close the page (tool chips removed on user request)
+          h(UsageCards, { context: d.context ?? null, composition: d.composition ?? null })))
     }
 
     // ── panel assembly ─────────────────────────────────────────────────────
