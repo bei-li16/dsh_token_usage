@@ -1,0 +1,299 @@
+════ 逐会话对账 · dsh-usage-ledger vs dsh-token-total · compare-sessions.mjs ════
+模式: 报告（默认，exit 0）   时间: 2026-11-18T06:47:26.200Z
+端口: 54348（我方 http://127.0.0.1:54348/usage-ledger/api/session）
+
+── 逐会话对账（94 会话；按规模降序）
+session     name                      我方 tokens      他方 tokens      Δ             Δ%      标记
+bbf11a8f-0  THA6102W代码                208,199,833    208,199,833    +0            0.00%   ✓
+e9ada59f-5  用量账本                      189,849,084    191,398,505    -1,549,421    0.81%   ~ ACT
+02c869df-4  SPI_CATL                  142,013,718    142,013,718    +0            0.00%   ✓
+ba838400-f  THA6102W代码 (1)            116,318,089    116,318,089    +0            0.00%   ✓
+8c0656bf-9  CPU和内存占用分析                91,450,567     91,450,567     +0            0.00%   ✓
+db8b0e0f-2  架构文档修改                    87,211,024     88,216,667     -1,005,643    1.14%   ✗ ACT
+3832f91d-e  cpu和内存占用分析                75,646,524     75,646,524     +0            0.00%   ✓
+777c8a84-6  详细分析该工程                   71,394,738     71,394,738     +0            0.00%   ✓
+23aa6ca8-d  Normal分析                  71,055,617     71,055,617     +0            0.00%   ✓
+1069f72e-a  glm5.2问题分析                67,552,987     67,552,987     +0            0.00%   ✓
+b87c4e6a-3  寄存器偏移计算工具                 57,481,157     57,481,157     +0            0.00%   ✓
+b936c466-7  查看当前分支                    55,630,369     55,630,369     +0            0.00%   ✓
+33cedff2-f  分析工程功能与流程                 51,323,999     51,323,999     +0            0.00%   ✓
+3b94c33b-b  宏生成检查                     50,507,859     50,507,859     +0            0.00%   ✓
+3a746e6c-1  Normal分析1                 43,655,038     45,226,080     -1,571,042    3.47%   ✗
+d703175d-6  QM_ref 拉取变基到最新            38,631,776     38,631,776     +0            0.00%   ✓
+28365027-3  工程中的patch是使用svn生成的        30,746,359     30,746,359     +0            0.00%   ✓
+423cb341-f  会议纪要skills                29,435,887     29,435,887     +0            0.00%   ✓
+caab691e-a  ai-proxy-gui内存占用分析        26,106,542     26,106,542     +0            0.00%   ✓
+d005c96c-d  core代码                    23,953,740     23,953,740     +0            0.00%   ✓
+2621d5c8-a  DSH界面优化                   23,227,832     23,227,832     +0            0.00%   ✓
+59afd24d-6  搜集ARM PMU官方与Linux证据       19,777,665     19,777,665     +0            0.00%   ✓
+215de1f9-3  SPI波特率与kernal关系           15,580,895     15,580,895     +0            0.00%   ✓
+100b7430-c  Verify ICU audit report   11,073,263     11,073,263     +0            0.00%   ✓
+36e72fb2-8  QAC自动化工具                  10,362,271     10,362,271     +0            0.00%   ✓
+d90de402-0  搜集GTM-IP寄存器图证据            9,101,120      9,101,120      +0            0.00%   ✓
+c203d2bc-4  QAC违例分析                   7,779,004      7,779,004      +0            0.00%   ✓
+f2d05e25-9  分析copy工程下的内容，重点分          6,614,039      6,614,039      +0            0.00%   ✓
+dd617757-b  搜集ARM MPU/ISB官方证据         5,753,955      5,753,955      +0            0.00%   ✓
+4dee6432-2  Analyze EB tresos plugins/3,987,874      3,987,874      +0            0.00%   ✓
+2a81705f-3  SPI的setmode对DMA影响分析       3,810,109      3,810,109      +0            0.00%   ✓
+41689d9e-f  Analyze MCAL module layer 3,737,909      3,737,909      +0            0.00%   ✓
+3e9c4dbb-f  storage 层实现（第三次）          3,525,288      3,525,288      +0            0.00%   ✓
+5ce5401d-a  分析INTT_Icu_00108失败原因      3,480,366      3,480,366      +0            0.00%   ✓
+e6e734ba-c  详细分析工程结构                  3,390,768      3,390,768      +0            0.00%   ✓
+da7d7b3e-a  核对 SPI 序列图 01-10          2,631,826      2,631,826      +0            0.00%   ✓
+e48b8aea-3  Verify PWM audit report   2,517,515      2,517,515      +0            0.00%   ✓
+8cfbc58f-a  Analyze SDK HAL layer     2,185,963      2,185,963      +0            0.00%   ✓
+066f0774-4  TestCASE530分析             2,184,869      2,184,869      +0            0.00%   ✓
+9c69cf9e-3  面板视觉打磨+入场动画               1,990,735      1,990,735      +0            0.00%   ✓
+b108dd58-c  BaoAnalyze                1,904,263      1,904,263      +0            0.00%   ✓
+bb219b78-5  Verify GPT audit report   1,688,211      1,688,211      +0            0.00%   ✓
+3598cd85-1  ui 组件实现（第三次）              1,672,927      1,672,927      +0            0.00%   ✓
+2a9fc210-d  核对 SPI 序列图 11-19          1,574,525      1,574,525      +0            0.00%   ✓
+5170d545-d  悬停 tooltip 实现             1,551,790      1,551,790      +0            0.00%   ✓
+f854cedc-2  collector 层实现             1,438,666      1,438,666      +0            0.00%   ✓
+6e6061dc-6  collector 层实现（重开）         1,309,136      1,309,136      +0            0.00%   ✓
+0e78bd3c-9  api 路由层实现                 1,004,814      1,004,814      +0            0.00%   ✓
+6e7f7bec-d  核对 SPI 序列图 20-30          892,384        892,384        +0            0.00%   ✓
+8c06cf23-a  分析 main.py GUI 架构         820,377        820,377        +0            0.00%   ✓
+0ec524d7-7  采集两插件最新对账数据               749,226        749,226        +0            0.00%   ✓ ACT
+947e303a-2  UI/UX 专家评审                632,104        632,104        +0            0.00%   ✓
+b3c0ce48-9  检查IOM/GTM/OCU序列图          607,809        607,809        +0            0.00%   ✓
+f8e498d1-0  storage 层实现（重开）           532,924        532,924        +0            0.00%   ✓
+600cb1cc-2  DEV error检测实现逻辑分析         495,933        495,933        +0            0.00%   ✓
+07c225a7-0  storage 层实现               470,036        470,036        +0            0.00%   ✓
+807550c7-1  分析 SubTool 小工具集           421,952        421,952        +0            0.00%   ✓
+2588592f-0  核对 SPI 序列图 31-40          262,094        262,094        +0            0.00%   ✓
+7110ea5d-6  分析 QAC 与编译模块              199,171        199,171        +0            0.00%   ✓
+b8bc4d37-a  ui 客户端实现（重开）              121,190        121,190        +0            0.00%   ✓
+84102073-f  分析后端核心模块                  93,031         93,031         +0            0.00%   ✓
+d78dce2e-c  查ICU序列图image10-14         54,247         54,247         +0            0.00%   ✓
+6a60fdf9-b  查BASETIMER序列图image7-10    51,667         51,667         +0            0.00%   ✓
+cc018f34-d  查ICU序列图image6-9           47,548         47,548         +0            0.00%   ✓
+44d06ad3-4  查BASETIMER序列图image3-6     40,288         40,288         +0            0.00%   ✓
+e3fc05e0-8  检查PWM/BASETIMER/MCALLIB序列图18,897         18,897         +0            0.00%   ✓
+2702755c-0  检查PWM/BASETIMER/MCALLIB序列图18,788         18,788         +0            0.00%   ✓
+211bcca3-e  检查GPT和ICU序列图              18,720         18,720         +0            0.00%   ✓
+ea15e1e7-0  ui 客户端实现                  11,669         11,669         +0            0.00%   ✓
+edd54647-5  检查GPT和ICU序列图              9,192          9,192          +0            0.00%   ✓
+6415009b-0  查GPT序列图image8-11重试        9,146          9,146          +0            0.00%   ✓
+e23077ab-9  查GPT序列图image4-7重试         9,090          9,090          +0            0.00%   ✓
+1a9ca900-9  查GPT序列图image8-11          8,966          8,966          +0            0.00%   ✓
+5ac5d146-b  查GPT序列图image4-7           8,960          8,960          +0            0.00%   ✓
+c5f4f150-7  查PWM序列图image4-7           8,867          8,867          +0            0.00%   ✓
+91b48855-c  查PWM序列图image6-7           8,862          8,862          +0            0.00%   ✓
+498d7b35-f  查PWM序列图image8-9           8,858          8,858          +0            0.00%   ✓
+95697064-7  查PWM序列图image10-11         8,858          8,858          +0            0.00%   ✓
+23c61e45-e  查PWM序列图image4-5           8,841          8,841          +0            0.00%   ✓
+bd17fa62-e  查PWM序列图image8-11          8,818          8,818          +0            0.00%   ✓
+30893513-1  —                         0              0              +0            0.00%   ✓
+0377dbd6-3  —                         0              0              +0            0.00%   ✓
+268496e8-a  —                         0              0              +0            0.00%   ✓
+3c771c5f-c  —                         0              0              +0            0.00%   ✓
+777056eb-2  —                         0              0              +0            0.00%   ✓
+787e3a39-7  —                         0              0              +0            0.00%   ✓
+7b6d3799-d  —                         0              0              +0            0.00%   ✓
+8e539de5-e  —                         0              0              +0            0.00%   ✓
+a472a24a-e  —                         0              0              +0            0.00%   ✓
+f063aee0-9  —                         0              0              +0            0.00%   ✓
+c0473b87-d  —                         0              0              +0            0.00%   ✓
+291f66ef-f  —                         0              0              +0            0.00%   ✓
+ca680f6d-c  —                         0              0              +0            0.00%   ✓
+8ce46656-5  —                         0              0              +0            0.00%   ✓
+
+── 汇总：总对比 94 · 精确一致 91 · 有差异 3 · 端点错误 0
+
+── 差异会话明细（四桶 + 归因线索）
+
+  e9ada59f-5555-4279-a7ac-16cfe742bbf9（用量账本）  [ACT 活会话]
+    tokens     我方 189,849,084 vs 他方 191,398,505  Δ -1,549,421（0.81%）
+    input      我方 18,460,609 vs 他方 18,722,445  Δ -261,836（1.40%）
+    output     我方 643,565 vs 他方 645,518  Δ -1,953（0.30%）
+    cacheRead  我方 170,744,910 vs 他方 172,030,542  Δ -1,285,632（0.75%）
+    ↳ 活会话：实时尾巴时序差（我方 live 计数 vs 他方按需读日志快照）——但若多次运行 Δ 恒定，则非时序差而是固定历史缺口，需人工看
+
+  db8b0e0f-23fa-4dfb-bf22-19e8b8a0df72（架构文档修改）  [ACT 活会话]
+    tokens     我方 87,211,024 vs 他方 88,216,667  Δ -1,005,643（1.14%）
+    input      我方 9,384,486 vs 他方 9,811,448  Δ -426,962（4.35%）
+    output     我方 873,770 vs 他方 897,187  Δ -23,417（2.61%）
+    cacheRead  我方 76,952,768 vs 他方 77,508,032  Δ -555,264（0.72%）
+    ↳ 活会话：实时尾巴时序差（我方 live 计数 vs 他方按需读日志快照）——但若多次运行 Δ 恒定，则非时序差而是固定历史缺口，需人工看
+
+  3a746e6c-14fc-473c-ba60-cd554a6c0b91（Normal分析1）  
+    tokens     我方 43,655,038 vs 他方 45,226,080  Δ -1,571,042（3.47%）
+    input      我方 4,002,741 vs 他方 4,024,516  Δ -21,775（0.54%）
+    output     我方 247,369 vs 他方 259,100  Δ -11,731（4.53%）
+    cacheRead  我方 39,404,928 vs 他方 40,942,464  Δ -1,537,536（3.76%）
+    ↳ 需人工看
+
+  （注：他方 session 端点实测无 requests 字段，该项不可对比，已跳过）
+
+── task-11 新字段联调校验（children[] / byModel 四桶）
+  children[] 非空: PASS
+  byModel 四桶齐全: PASS
+  样本（session-bbf11a8f-04b3-4f82-8ec5-ae5f5c6c1c8d）:
+    children[0]: {"id":"session-ba838400-fbfb-43fd-84fa-fff0dc8aaee1","parentId":"session-bbf11a8f-04b3-4f82-8ec5-ae5f5c6c1c8d","kind":"subagent","name":"THA6102W代码 (1)","requests":329,"failures":5,"turns":24,"tokens":116318089,"inputTokens":11241715,"outputTokens":657558,"cacheReadTokens":104418816,"cacheWriteTokens":0,"avgFirstTokenMs":31458,"tokensPerSecond":97.86029648572129}
+    byModel[0]: {"model":"P6","provider":"proxy","tokens":96383467,"requests":295,"failures":1,"inputTokens":8163277,"outputTokens":458846,"cacheReadTokens":87761344,"cacheWriteTokens":0}
+
+── 0.1.7 并排对照（context / composition / 子会话速率；样本 4）
+
+  ▸ bbf11a8f-04b3-4f82-8ec5-ae5f5c6c1c8d（THA6102W代码）   我方 0.1.7 数据来源: live 端点
+    项                                 我方             他方             判定    说明
+    context.totalTokens               130,195        130,195        PASS  ±15%（同为字符估算，允许实现差）
+    context.contextWindow             1,000,000      1,000,000      PASS  精确一致或同为 null
+    context.provider                  proxy          proxy          PASS  一致
+    context.model                     P2             P2             PASS  一致
+    composition.billedTokens          208,199,833    208,199,833    PASS  A2 精确一致（provider 精确 usage）
+    composition.systemPrompt          2,021,569      2,021,569      PASS  ±15%（分桶估算允许实现差）
+    composition.user                  359,690        359,690        PASS  ±15%（分桶估算允许实现差）
+    composition.skill                 677,417        677,417        PASS  ±15%（分桶估算允许实现差）
+    composition.toolResult            71,214,486     71,214,486     PASS  ±15%（分桶估算允许实现差）
+    composition.toolDef               6,489,466      6,489,466      PASS  ±15%（分桶估算允许实现差）
+    composition.injected              3,895,015      3,895,015      PASS  ±15%（分桶估算允许实现差）
+    composition.assistant             81,281,027     81,281,027     PASS  ±15%（分桶估算允许实现差）
+    composition.output                1,072,818      1,072,818      PASS  ±15%（分桶估算允许实现差）
+    子 ba838400-f tokens               116,318,089    116,318,089    PASS  A1 精确一致（容差 0）
+    子 ba838400-f avgFirstTokenMs      31,458         31,407         PASS  ±15%
+    子 ba838400-f tokensPerSecond      98             98             PASS  ±15%
+    我方 context    : {"totalTokens":130195,"contextWindow":1000000,"provider":"proxy","model":"P2","promptTokens":138239,"cacheHitTokens":137856,"cacheMissTokens":383,"cacheKnown":true,"buckets":[{"key":"systemPrompt","tokens":3107},{"key":"user","tokens":168},{"key":"skill","tokens":1634},{"key":"toolResult","tokens":35173},{"key":"toolDef","tokens":11240},{"key":"injected","tokens":9288},{"key":"assistant","tokens":69585}]}
+    他方 context    : {"totalTokens":130195,"contextWindow":1000000,"provider":"proxy","model":"P2","cacheHitTokens":137856,"cacheMissTokens":383,"cacheKnown":true,"promptTokens":138239,"items":[{"key":"conversation:assistant","category":"conversation","kind":"assistant","label":"","count":64,"tokens":69585},{"key":"results:pwsh","category":"results","label":"pwsh","count":32,"tokens":17625},{"key":"results:grep","category":"results","label":"grep","count":13,"tokens":6055},{"key":"tools:rest","category":"tools","kind":"rest","label":""…
+    我方 composition: {"buckets":[{"key":"systemPrompt","tokens":2021569},{"key":"user","tokens":359690},{"key":"skill","tokens":677417},{"key":"toolResult","tokens":71214486},{"key":"toolDef","tokens":6489466},{"key":"injected","tokens":3895015},{"key":"assistant","tokens":81281027},{"key":"output","tokens":1072818}],"billedTokens":208199833,"totals":{"tokens":208199833,"inputTokens":17168999,"outputTokens":1072818,"cacheReadTokens":189958016,"cacheWriteTokens":0,"reasoningTokens":0},"requests":841}
+    他方 composition: {"buckets":[{"key":"systemPrompt","tokens":2021569},{"key":"user","tokens":359690},{"key":"skill","tokens":677417},{"key":"toolResult","tokens":71214486},{"key":"toolDef","tokens":6489466},{"key":"injected","tokens":3895015},{"key":"assistant","tokens":81281027},{"key":"output","tokens":1072818}],"billedTokens":208199833,"totals":{"uncachedInputTokens":17168999,"outputTokens":1072818,"cacheReadTokens":189958016,"cacheWriteTokens":0},"requests":841}
+    我方 byModel[0] : {"model":"P6","provider":"proxy","tokens":96383467,"requests":295,"failures":1,"inputTokens":8163277,"outputTokens":458846,"cacheReadTokens":87761344,"cacheWriteTokens":0}（name 省略：llm 元数据未解析到，contract 允许）
+
+  ▸ e9ada59f-5555-4279-a7ac-16cfe742bbf9（用量账本）   我方 0.1.7 数据来源: live 端点
+    项                                 我方             他方             判定    说明
+    context.totalTokens               220,682        220,682        PASS  ±15%（同为字符估算，允许实现差）
+    context.contextWindow             1,000,000      1,000,000      PASS  精确一致或同为 null
+    context.provider                  proxy          proxy          PASS  一致
+    context.model                     P1             P1             PASS  一致
+    composition.billedTokens          190,652,786    190,652,786    PASS  A2 精确一致（provider 精确 usage）
+    composition.systemPrompt          2,271,750      2,271,750      PASS  ±15%（分桶估算允许实现差）
+    composition.user                  8,221,109      8,221,109      PASS  ±15%（分桶估算允许实现差）
+    composition.skill                 1,570,045      1,570,045      PASS  ±15%（分桶估算允许实现差）
+    composition.toolResult            82,342,390     82,342,390     PASS  ±15%（分桶估算允许实现差）
+    composition.toolDef               9,640,221      9,640,221      PASS  ±15%（分桶估算允许实现差）
+    composition.injected              5,804,926      5,804,926      PASS  ±15%（分桶估算允许实现差）
+    composition.assistant             60,372,130     60,372,130     PASS  ±15%（分桶估算允许实现差）
+    composition.output                594,987        594,987        PASS  ±15%（分桶估算允许实现差）
+    子 07c225a7-0 tokens               470,036        470,036        PASS  A1 精确一致（容差 0）
+    子 07c225a7-0 avgFirstTokenMs      28,254         28,254         PASS  ±15%
+    子 07c225a7-0 tokensPerSecond      88             88             PASS  ±15%
+    子 0e78bd3c-9 tokens               1,004,814      1,004,814      PASS  A1 精确一致（容差 0）
+    子 0e78bd3c-9 avgFirstTokenMs      40,490         40,490         PASS  ±15%
+    子 0e78bd3c-9 tokensPerSecond      77             77             PASS  ±15%
+    子 0ec524d7-7 tokens               749,226        749,226        PASS  A1 精确一致（容差 0）
+    子 0ec524d7-7 avgFirstTokenMs      17,515         17,515         PASS  ±15%
+    子 0ec524d7-7 tokensPerSecond      65             65             PASS  ±15%
+    子 3598cd85-1 tokens               1,672,927      1,672,927      PASS  A1 精确一致（容差 0）
+    子 3598cd85-1 avgFirstTokenMs      22,686         22,686         PASS  ±15%
+    子 3598cd85-1 tokensPerSecond      74             74             PASS  ±15%
+    子 3e9c4dbb-f tokens               3,525,288      3,525,288      PASS  A1 精确一致（容差 0）
+    子 3e9c4dbb-f avgFirstTokenMs      22,976         22,976         PASS  ±15%
+    子 3e9c4dbb-f tokensPerSecond      46             46             PASS  ±15%
+    子 5170d545-d tokens               1,551,790      1,551,790      PASS  A1 精确一致（容差 0）
+    子 5170d545-d avgFirstTokenMs      17,207         17,207         PASS  ±15%
+    子 5170d545-d tokensPerSecond      52             52             PASS  ±15%
+    子 6e6061dc-6 tokens               1,309,136      1,309,136      PASS  A1 精确一致（容差 0）
+    子 6e6061dc-6 avgFirstTokenMs      33,761         33,761         PASS  ±15%
+    子 6e6061dc-6 tokensPerSecond      77             77             PASS  ±15%
+    子 947e303a-2 tokens               632,104        632,104        PASS  A1 精确一致（容差 0）
+    子 947e303a-2 avgFirstTokenMs      38,576         38,576         PASS  ±15%
+    子 947e303a-2 tokensPerSecond      46             46             PASS  ±15%
+    子 9c69cf9e-3 tokens               1,990,735      1,990,735      PASS  A1 精确一致（容差 0）
+    子 9c69cf9e-3 avgFirstTokenMs      15,103         15,103         PASS  ±15%
+    子 9c69cf9e-3 tokensPerSecond      52             52             PASS  ±15%
+    子 b8bc4d37-a tokens               121,190        121,190        PASS  A1 精确一致（容差 0）
+    子 b8bc4d37-a avgFirstTokenMs      35,028         35,028         PASS  ±15%
+    子 b8bc4d37-a tokensPerSecond      69             69             PASS  ±15%
+    子 ea15e1e7-0 tokens               11,669         11,669         PASS  A1 精确一致（容差 0）
+    子 ea15e1e7-0 avgFirstTokenMs      96,848         96,848         PASS  ±15%
+    子 ea15e1e7-0 tokensPerSecond      79             79             PASS  ±15%
+    子 f854cedc-2 tokens               1,438,666      1,438,666      PASS  A1 精确一致（容差 0）
+    子 f854cedc-2 avgFirstTokenMs      15,317         15,317         PASS  ±15%
+    子 f854cedc-2 tokensPerSecond      54             54             PASS  ±15%
+    子 f8e498d1-0 tokens               532,924        532,924        PASS  A1 精确一致（容差 0）
+    子 f8e498d1-0 avgFirstTokenMs      29,131         29,131         PASS  ±15%
+    子 f8e498d1-0 tokensPerSecond      75             75             PASS  ±15%
+    我方 context    : {"totalTokens":220682,"contextWindow":1000000,"provider":"proxy","model":"P1","promptTokens":260550,"cacheHitTokens":259840,"cacheMissTokens":710,"cacheKnown":true,"buckets":[{"key":"systemPrompt","tokens":3716},{"key":"user","tokens":22563},{"key":"skill","tokens":4711},{"key":"toolResult","tokens":90272},{"key":"toolDef","tokens":11916},{"key":"injected","tokens":12965},{"key":"assistant","tokens":74539}]}
+    他方 context    : {"totalTokens":220682,"contextWindow":1000000,"provider":"proxy","model":"P1","cacheHitTokens":259840,"cacheMissTokens":710,"cacheKnown":true,"promptTokens":260550,"items":[{"key":"conversation:assistant","category":"conversation","kind":"assistant","label":"","count":259,"tokens":74539},{"key":"results:grep","category":"results","label":"grep","count":44,"tokens":27597},{"key":"files:D:\\LiBo\\Files\\DATA\\AI_proj\\dsh_token_usage\\dsh-usage-ledger\\client.js","category":"files","label":"D:\\LiBo\\Files\\DATA\\AI_…
+    我方 composition: {"buckets":[{"key":"systemPrompt","tokens":2271750},{"key":"user","tokens":8221109},{"key":"skill","tokens":1570045},{"key":"toolResult","tokens":82342390},{"key":"toolDef","tokens":9640221},{"key":"injected","tokens":5804926},{"key":"assistant","tokens":60372130},{"key":"output","tokens":594987}],"billedTokens":190652786,"totals":{"tokens":190652786,"inputTokens":18714617,"outputTokens":594987,"cacheReadTokens":171343182,"cacheWriteTokens":0,"reasoningTokens":0},"requests":995}
+    他方 composition: {"buckets":[{"key":"systemPrompt","tokens":2271750},{"key":"user","tokens":8221109},{"key":"skill","tokens":1570045},{"key":"toolResult","tokens":82342390},{"key":"toolDef","tokens":9640221},{"key":"injected","tokens":5804926},{"key":"assistant","tokens":60372130},{"key":"output","tokens":594987}],"billedTokens":190652786,"totals":{"uncachedInputTokens":18714617,"outputTokens":594987,"cacheReadTokens":171343182,"cacheWriteTokens":0},"requests":995}
+    我方 byModel[0] : {"model":"P1","provider":"proxy","tokens":189849084,"requests":1294,"failures":305,"inputTokens":18460609,"outputTokens":643565,"cacheReadTokens":170744910,"cacheWriteTokens":0,"name":"kimi-k3"}
+
+  ▸ db8b0e0f-23fa-4dfb-bf22-19e8b8a0df72（架构文档修改）   我方 0.1.7 数据来源: live 端点
+    项                                 我方             他方             判定    说明
+    context.totalTokens               55,241         55,241         PASS  ±15%（同为字符估算，允许实现差）
+    context.contextWindow             1,000,000      1,000,000      PASS  精确一致或同为 null
+    context.provider                  proxy          proxy          PASS  一致
+    context.model                     P2             P2             PASS  一致
+    composition.billedTokens          88,216,667     88,216,667     PASS  A2 精确一致（provider 精确 usage）
+    composition.systemPrompt          1,219,019      1,219,019      PASS  ±15%（分桶估算允许实现差）
+    composition.user                  276,184        276,184        PASS  ±15%（分桶估算允许实现差）
+    composition.skill                 444,294        444,294        PASS  ±15%（分桶估算允许实现差）
+    composition.toolResult            29,716,334     29,716,334     PASS  ±15%（分桶估算允许实现差）
+    composition.toolDef               5,540,582      5,540,582      PASS  ±15%（分桶估算允许实现差）
+    composition.injected              2,751,432      2,751,432      PASS  ±15%（分桶估算允许实现差）
+    composition.assistant             34,303,289     34,303,289     PASS  ±15%（分桶估算允许实现差）
+    composition.output                897,187        897,187        PASS  ±15%（分桶估算允许实现差）
+    子 59afd24d-6 tokens               19,777,665     19,777,665     PASS  A1 精确一致（容差 0）
+    子 59afd24d-6 avgFirstTokenMs      11,301         11,301         PASS  ±15%
+    子 59afd24d-6 tokensPerSecond      54             54             PASS  ±15%
+    子 d90de402-0 tokens               9,101,120      9,101,120      PASS  A1 精确一致（容差 0）
+    子 d90de402-0 avgFirstTokenMs      3,978          3,978          PASS  ±15%
+    子 d90de402-0 tokensPerSecond      56             56             PASS  ±15%
+    子 dd617757-b tokens               5,753,955      5,753,955      PASS  A1 精确一致（容差 0）
+    子 dd617757-b avgFirstTokenMs      4,316          4,316          PASS  ±15%
+    子 dd617757-b tokensPerSecond      49             49             PASS  ±15%
+    我方 context    : {"totalTokens":55241,"contextWindow":1000000,"provider":"proxy","model":"P2","promptTokens":47594,"cacheHitTokens":47104,"cacheMissTokens":490,"cacheKnown":true,"buckets":[{"key":"systemPrompt","tokens":1445},{"key":"user","tokens":36},{"key":"skill","tokens":874},{"key":"toolResult","tokens":1787},{"key":"toolDef","tokens":11240},{"key":"injected","tokens":12317},{"key":"assistant","tokens":27542}]}
+    他方 context    : {"totalTokens":55241,"contextWindow":1000000,"provider":"proxy","model":"P2","cacheHitTokens":47104,"cacheMissTokens":490,"cacheKnown":true,"promptTokens":47594,"items":[{"key":"conversation:assistant","category":"conversation","kind":"assistant","label":"","count":27,"tokens":27542},{"key":"memory:compaction-summary","category":"memory","kind":"compaction-summary","label":"","count":3,"tokens":8744},{"key":"tools:rest","category":"tools","kind":"rest","label":"","count":38,"tokens":5825},{"key":"memory:compact-che…
+    我方 composition: {"buckets":[{"key":"systemPrompt","tokens":1219019},{"key":"user","tokens":276184},{"key":"skill","tokens":444294},{"key":"toolResult","tokens":29716334},{"key":"toolDef","tokens":5540582},{"key":"injected","tokens":2751432},{"key":"assistant","tokens":34303289},{"key":"output","tokens":897187}],"billedTokens":88216667,"totals":{"tokens":88216667,"inputTokens":9811448,"outputTokens":897187,"cacheReadTokens":77508032,"cacheWriteTokens":0,"reasoningTokens":0},"requests":542}
+    他方 composition: {"buckets":[{"key":"systemPrompt","tokens":1219019},{"key":"user","tokens":276184},{"key":"skill","tokens":444294},{"key":"toolResult","tokens":29716334},{"key":"toolDef","tokens":5540582},{"key":"injected","tokens":2751432},{"key":"assistant","tokens":34303289},{"key":"output","tokens":897187}],"billedTokens":88216667,"totals":{"uncachedInputTokens":9811448,"outputTokens":897187,"cacheReadTokens":77508032,"cacheWriteTokens":0},"requests":542}
+    我方 byModel[0] : {"model":"P2","provider":"proxy","tokens":76878446,"requests":394,"failures":6,"inputTokens":8017841,"outputTokens":792317,"cacheReadTokens":68068288,"cacheWriteTokens":0,"name":"glm-5.3"}
+
+  ▸ 777c8a84-6166-422b-8d55-a45924f5cf37（详细分析该工程）   我方 0.1.7 数据来源: live 端点
+    项                                 我方             他方             判定    说明
+    context.totalTokens               328,923        328,923        PASS  ±15%（同为字符估算，允许实现差）
+    context.contextWindow             1,000,000      1,000,000      PASS  精确一致或同为 null
+    context.provider                  proxy          proxy          PASS  一致
+    context.model                     P1             P1             PASS  一致
+    composition.billedTokens          71,394,738     71,394,738     PASS  A2 精确一致（provider 精确 usage）
+    composition.systemPrompt          1,123,622      1,123,622      PASS  ±15%（分桶估算允许实现差）
+    composition.user                  346,244        346,244        PASS  ±15%（分桶估算允许实现差）
+    composition.skill                 255,426        255,426        PASS  ±15%（分桶估算允许实现差）
+    composition.toolResult            29,852,294     29,852,294     PASS  ±15%（分桶估算允许实现差）
+    composition.toolDef               3,259,718      3,259,718      PASS  ±15%（分桶估算允许实现差）
+    composition.injected              6,571,084      6,571,084      PASS  ±15%（分桶估算允许实现差）
+    composition.assistant             18,976,686     18,976,686     PASS  ±15%（分桶估算允许实现差）
+    composition.output                611,125        611,125        PASS  ±15%（分桶估算允许实现差）
+    子 41689d9e-f tokens               3,737,909      3,737,909      PASS  A1 精确一致（容差 0）
+    子 41689d9e-f avgFirstTokenMs      22,637         22,637         PASS  ±15%
+    子 41689d9e-f tokensPerSecond      233            233            PASS  ±15%
+    子 4dee6432-2 tokens               3,987,874      3,987,874      PASS  A1 精确一致（容差 0）
+    子 4dee6432-2 avgFirstTokenMs      31,979         31,979         PASS  ±15%
+    子 4dee6432-2 tokensPerSecond      232            232            PASS  ±15%
+    子 8cfbc58f-a tokens               2,185,963      2,185,963      PASS  A1 精确一致（容差 0）
+    子 8cfbc58f-a avgFirstTokenMs      27,448         27,448         PASS  ±15%
+    子 8cfbc58f-a tokensPerSecond      208            208            PASS  ±15%
+    我方 context    : {"totalTokens":328923,"contextWindow":1000000,"provider":"proxy","model":"P1","promptTokens":369339,"cacheHitTokens":367616,"cacheMissTokens":1723,"cacheKnown":true,"buckets":[{"key":"systemPrompt","tokens":2938},{"key":"user","tokens":4038},{"key":"skill","tokens":460},{"key":"toolResult","tokens":114963},{"key":"toolDef","tokens":7302},{"key":"injected","tokens":20198},{"key":"assistant","tokens":179024}]}
+    他方 context    : {"totalTokens":328923,"contextWindow":1000000,"provider":"proxy","model":"P1","cacheHitTokens":367616,"cacheMissTokens":1723,"cacheKnown":true,"promptTokens":369339,"items":[{"key":"conversation:assistant","category":"conversation","kind":"assistant","label":"","count":142,"tokens":179024},{"key":"results:pwsh","category":"results","label":"pwsh","count":109,"tokens":40303},{"key":"files:D:\\THA6412\\01_Branch\\02_FuSa\\02_code\\THA6XXX_MC_AS440\\Mcal\\Code\\Spi\\src\\Spi.c","category":"files","label":"D:\\THA6412\…
+    我方 composition: {"buckets":[{"key":"systemPrompt","tokens":1123622},{"key":"user","tokens":346244},{"key":"skill","tokens":255426},{"key":"toolResult","tokens":29852294},{"key":"toolDef","tokens":3259718},{"key":"injected","tokens":6571084},{"key":"assistant","tokens":18976686},{"key":"output","tokens":611125}],"billedTokens":71394738,"totals":{"tokens":71394738,"inputTokens":6372660,"outputTokens":611125,"cacheReadTokens":64410953,"cacheWriteTokens":0,"reasoningTokens":0},"requests":529}
+    他方 composition: {"buckets":[{"key":"systemPrompt","tokens":1123622},{"key":"user","tokens":346244},{"key":"skill","tokens":255426},{"key":"toolResult","tokens":29852294},{"key":"toolDef","tokens":3259718},{"key":"injected","tokens":6571084},{"key":"assistant","tokens":18976686},{"key":"output","tokens":611125}],"billedTokens":71394738,"totals":{"uncachedInputTokens":6372660,"outputTokens":611125,"cacheReadTokens":64410953,"cacheWriteTokens":0},"requests":529}
+    我方 byModel[0] : {"model":"P1","provider":"proxy","tokens":19350098,"requests":64,"failures":0,"inputTokens":2839649,"outputTokens":99752,"cacheReadTokens":16410697,"cacheWriteTokens":0,"name":"kimi-k3"}
+
+  对照汇总：PASS 112 · FAIL 0 · INFO 0 · 端点错误 0
+
+── 判据（报告模式列出，不影响退出码）
+  [S1] 非活会话四桶 |Δ| ≤ 0.5% 或 ≤ 10K  FAIL  — 4 项违反
+      · session-3a746e6c-14fc-473c-ba60-cd554a6c0b91 [tokens] Δ-1,571,042（3.47% of 45,226,080）
+      · session-3a746e6c-14fc-473c-ba60-cd554a6c0b91 [input] Δ-21,775（0.54% of 4,024,516）
+      · session-3a746e6c-14fc-473c-ba60-cd554a6c0b91 [output] Δ-11,731（4.53% of 259,100）
+      · session-3a746e6c-14fc-473c-ba60-cd554a6c0b91 [cacheRead] Δ-1,537,536（3.76% of 40,942,464）
+  [S2] task-11 children[]/byModel 四桶联调  PASS
+  [S3] 0.1.7 A1/A2 与 ±15% 容差对照  PASS
+
+── 说明
+  · 我方与他方 totals 均为“本会话+全部后代”口径（我方 BFS、他方 self+compaction+subagents），可直接对比。
+  · 活会话（ACT）：我方 live 计数、他方按需读日志，实时尾巴存在时序差，只列出不判（30 分钟窗口）。
+  · 他方 retry 计数口径差、30 天明细窗口外不完整为已知可解释差异（见各差异行归因线索）。
+  · composition 的 billed 来自 provider 精确 usage（A2 精确判）；分桶与 context.totalTokens 是字符估算（±15% 判）。
+
+报告模式完成（exit 0）
