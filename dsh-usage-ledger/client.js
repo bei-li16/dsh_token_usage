@@ -205,7 +205,21 @@ window.__ModuleLoader__.load({
 .ul-cards{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
 .ul-card{box-sizing:border-box;padding:12px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);min-width:0}
 .ul-cardLabel{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--dsw-alias-label-tertiary);margin-bottom:4px}
-.ul-cardIcon{display:inline-flex;flex:0 0 auto;color:var(--dsw-alias-label-tertiary)}
+/* Metric-card icon badge: tone-colored glyph on a 14% tint of the same hue
+   (aligned with token-total's session cards: blue requests / purple tokens /
+   teal input / orange output+speed / green hit rate). */
+.ul-cardLabel{display:flex;align-items:center;gap:6px}
+.ul-cardIcon{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:6px;color:var(--ul-ic,var(--dsw-alias-label-tertiary));background:color-mix(in srgb,var(--ul-ic,var(--dsw-alias-label-tertiary)) 14%,transparent);flex:0 0 auto}
+.ul-icBlue{--ul-ic:#4d6bfe}
+.ul-icPurple{--ul-ic:#975bf1}
+.ul-icTeal{--ul-ic:#0d8a8a}
+.ul-icOrange{--ul-ic:#e07b39}
+.ul-icGreen{--ul-ic:#00b96b}
+body[data-ds-dark-theme] .ul-icBlue{--ul-ic:#7d95ff}
+body[data-ds-dark-theme] .ul-icPurple{--ul-ic:#b18cff}
+body[data-ds-dark-theme] .ul-icTeal{--ul-ic:#3bc5c5}
+body[data-ds-dark-theme] .ul-icOrange{--ul-ic:#e89a5c}
+body[data-ds-dark-theme] .ul-icGreen{--ul-ic:#2fbf7c}
 .ul-cardValue{font-size:18px;font-weight:600;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ul-cardSub{font-size:11px;color:var(--dsw-alias-label-tertiary);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* Full-width strip, every cell the SAME width (flex-basis 0 → truly equal),
@@ -391,10 +405,10 @@ body[data-ds-dark-theme] .ul-tone-output{--ul-bucket:#ff85c0}
       return null
     }
 
-    function Card({ label, value, sub, title, icon }) {
+    function Card({ label, value, sub, title, icon, tone }) {
       return h('div', { className: 'ul-card' },
         h('div', { className: 'ul-cardLabel' },
-          icon ? h('span', { className: 'ul-cardIcon' }, icon) : null,
+          icon ? h('span', { className: tone ? `ul-cardIcon ${tone}` : 'ul-cardIcon' }, icon) : null,
           label),
         h('div', { className: 'ul-cardValue', title }, value),
         sub ? h('div', { className: 'ul-cardSub' }, sub) : null)
@@ -1399,34 +1413,34 @@ body[data-ds-dark-theme] .ul-tone-output{--ul-bucket:#ff85c0}
           error ? h('div', { className: 'ul-error' },
             h('span', null, `${t('loadError')}: ${error.message}`),
             h('button', { type: 'button', onClick: refresh }, t('retry'))) : null,
-          // six metric cards, aligned with token-total's Metrics row
+          // six metric cards, aligned with token-total's Metrics row (no
+          // section title — the original goes straight into the cards)
           h('section', { className: 'ul-sec' },
-            h('div', { className: 'ul-secTitle' }, t('svTotals')),
             h('div', { className: 'ul-cards' },
               h(Card, {
-                label: t('requests'), icon: cardIcon(CARD_ICON_D.requests),
+                label: t('requests'), icon: cardIcon(CARD_ICON_D.requests), tone: 'ul-icBlue',
                 value: fmtInt(d.requests), sub: `${t('failures')} ${fmtInt(d.failures)} · ${failRate}%`,
               }),
               h(Card, {
-                label: t('svTokens'), icon: cardIcon(CARD_ICON_D.tokens),
+                label: t('svTokens'), icon: cardIcon(CARD_ICON_D.tokens), tone: 'ul-icPurple',
                 value: fmtTok(d.totals.tokens), title: fmtInt(d.totals.tokens),
                 sub: `${fmtInt(d.totals.tokens)} ${t('sTok')}`,
               }),
               h(Card, {
-                label: t('inputTok'), icon: cardIcon(CARD_ICON_D.input),
+                label: t('inputTok'), icon: cardIcon(CARD_ICON_D.input), tone: 'ul-icTeal',
                 value: fmtTok(d.totals.inputTokens), title: fmtInt(d.totals.inputTokens), sub: fmtInt(d.totals.inputTokens),
               }),
               h(Card, {
-                label: t('outputTok'), icon: cardIcon(CARD_ICON_D.output),
+                label: t('outputTok'), icon: cardIcon(CARD_ICON_D.output), tone: 'ul-icOrange',
                 value: fmtTok(d.totals.outputTokens), title: fmtInt(d.totals.outputTokens), sub: fmtInt(d.totals.outputTokens),
               }),
               h(Card, {
-                label: t('cacheHit'), icon: cardIcon(CARD_ICON_D.hit),
+                label: t('cacheHit'), icon: cardIcon(CARD_ICON_D.hit), tone: 'ul-icGreen',
                 value: h(HitCell, { rate: hit }),
                 sub: hit === null ? null : `${fmtTok(d.totals.cacheReadTokens)} ${t('svCacheHitShort')}`,
               }),
               h(Card, {
-                label: t('decodeSpeed'), icon: cardIcon(CARD_ICON_D.speed),
+                label: t('decodeSpeed'), icon: cardIcon(CARD_ICON_D.speed), tone: 'ul-icOrange',
                 value: d.tokensPerSecond == null ? t('na') : `${Math.round(d.tokensPerSecond)} ${t('svTokPerSec')}`,
                 sub: `${t('avgTtft')} ${fmtSec(d.avgFirstTokenMs)}`,
               }))),
